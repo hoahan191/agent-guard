@@ -45,8 +45,8 @@ flowchart TB
     Judge <-->|Inference & Suy luận sâu| Vertex
     
     Judge -->|10. Trả về Báo cáo JSON| Orchestrator
-    Orchestrator -->|11. Quyết định Exit Code (0/1)| GHA
-    GHA -->|12. Hiển thị 🔴 BLOCKED / 🟢 PASSED| PR_Comment
+    Orchestrator -->|11. Quyết định Exit Code 0/1| GHA
+    GHA -->|12. Hiển thị BLOCKED hay PASSED| PR_Comment
 
     %% Styling cho sự trực quan
     classDef secure fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
