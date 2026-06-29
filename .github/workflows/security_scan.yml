@@ -57,3 +57,10 @@ jobs:
           cat scan_report.log
           
           # GitHub Actions sẽ tự động block PR không cho merge dựa trên exit code của script trên!
+
+      - name: 📤 Upload Security HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgentGuard-Security-Report
+          path: security_report.html
