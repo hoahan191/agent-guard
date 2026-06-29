@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgentGuard Security Report</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS with Typography plugin cho Markdown -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <!-- Marked.js để parse Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body { background-color: #0f172a; color: #e2e8f0; }
         .breached { border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
@@ -53,7 +56,13 @@
 
             <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
                 <h3 class="text-xl font-bold text-yellow-400 mb-3">🚀 Payload Của Red Teamer (Attacker)</h3>
-                <pre class="bg-slate-900 p-4 rounded border border-slate-700 text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono text-sm">{{ attack_prompt }}</pre>
+                
+                <!-- Chứa văn bản Markdown thô (ẩn) -->
+                <textarea id="raw-markdown" style="display:none;">{{ attack_prompt }}</textarea>
+                
+                <!-- Nơi Marked.js sẽ đổ HTML vào, sử dụng prose-invert của Tailwind -->
+                <div id="markdown-content" class="bg-slate-900 p-4 rounded border border-slate-700 text-gray-300 prose prose-invert max-w-none text-sm">
+                </div>
             </div>
 
             <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
@@ -66,5 +75,13 @@
             Generated automatically by AgentGuard DevSecOps Pipeline
         </div>
     </div>
+
+    <script>
+        // Khi trang vừa load xong, lấy Markdown thô và dịch sang HTML đẹp mắt
+        document.addEventListener("DOMContentLoaded", function() {
+            var rawText = document.getElementById('raw-markdown').value;
+            document.getElementById('markdown-content').innerHTML = marked.parse(rawText);
+        });
+    </script>
 </body>
 </html>
