@@ -1,0 +1,59 @@
+name: LLM AgentGuard DevSecOps Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+permissions:
+  contents: read
+  pull-requests: write # Cấp quyền để bot có thể comment kết quả test lên PR
+  id-token: write      # Bắt buộc nếu bạn dùng OIDC để xác thực với AWS/GCP
+
+jobs:
+  agentguard-security-scan:
+    name: Run LLM Red Teaming & Judge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Tùy chọn: Đăng nhập Cloud không cần mật khẩu qua OIDC (Best Practice cho DevSecOps)
+      # - name: Configure AWS Credentials via OIDC
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActionRole
+      #     aws-region: ap-southeast-1
+
+      - name: 🛡️ Execute AgentGuard Red Teaming
+        env:
+          # Truyền API Key an toàn từ GitHub Secrets
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} 
+          # TARGET_API_URL: ${{ secrets.TARGET_API_URL }} # Nếu Target API chạy độc lập
+        run: |
+          echo "Bắt đầu khởi động chiến dịch Red Teaming..."
+          
+          # Chạy script Python chứa lõi AgentGuard của bạn
+          # Script này sẽ trả về exit code 1 nếu Judge Agent đánh giá is_breached == True
+          PYTHONPATH=. python src/main.py > scan_report.log
+
+      - name: 📊 Parse Results & Enforce Security Gate
+        if: always() # Luôn chạy bước này dù test pass hay fail để in log
+        run: |
+          echo "=== KẾT QUẢ ĐÁNH GIÁ TỪ JUDGE AGENT ==="
+          cat scan_report.log
+          
+          # GitHub Actions sẽ tự động block PR không cho merge dựa trên exit code của script trên!
