@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+
+# Environment variables
+.env
+
+# Báo cáo sinh ra tự động
+report.json
+security_report.html
+
+# Cấu hình IDE
+.vscode/
+.idea/

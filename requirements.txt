@@ -1,0 +1,7 @@
+google-genai
+fastapi
+uvicorn
+typer
+jinja2
+requests
+rich
