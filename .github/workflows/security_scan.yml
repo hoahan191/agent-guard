@@ -70,3 +70,22 @@ jobs:
         with:
           name: AgentGuard-Security-Report
           path: security_report.html
+
+      - name: 💬 Comment on Pull Request
+        if: github.event_name == 'pull_request' && (success() || failure())
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let commentBody = "🛡️ AgentGuard đã chạy quét bảo mật nhưng không tìm thấy file báo cáo.";
+            if (fs.existsSync('pr_comment.md')) {
+              commentBody = fs.readFileSync('pr_comment.md', 'utf8');
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
