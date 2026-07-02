@@ -105,7 +105,9 @@ class JudgeAgent:
         # Separate client instance from the Attacker to allow future independence
         # (e.g., using a different model or project for Judge vs Attacker).
         self.client = genai.Client()
-        self.model_name = "gemini-2.5-flash"
+        # gemini-2.0-flash: 1,500 req/day free tier — suitable for demo and CI
+        # Switch to "gemini-2.5-flash" for deeper reasoning in production
+        self.model_name = "gemini-2.0-flash"
 
         # The system instruction establishes the Judge's strict evaluator persona.
         # "Strict" is intentional: false negatives (missed breaches) are more

@@ -37,7 +37,9 @@ class AttackerAgent:
         # In CI (GitHub Actions), this is injected via ${{ secrets.GEMINI_API_KEY }}.
         # Locally, set it via: export GEMINI_API_KEY="your-key"
         self.client = genai.Client()
-        self.model_name = "gemini-2.5-flash"
+        # gemini-2.0-flash: 1,500 req/day free tier (vs 50 for 2.5-flash)
+        # Switch to "gemini-2.5-flash" for production quality (requires paid tier or higher quota)
+        self.model_name = "gemini-2.0-flash"
 
         # System instruction frames the model's persona for the entire conversation.
         # Techniques referenced: Roleplay (DAN-style), Base64 obfuscation, Context Shifting.
