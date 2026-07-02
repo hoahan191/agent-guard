@@ -35,7 +35,7 @@ flowchart TB
 
     GHA -->|4. Lệnh: agent-guard scan| Orchestrator
     Orchestrator -->|5. Khởi tạo State & Cấp quyền| Attacker
-    
+  
     Attacker <-->|6. Lấy Attack Vector| MCP
     Attacker <-->|Inference| Vertex
     Attacker -->|7. Gửi Payload Độc hại| TargetAPI
@@ -43,7 +43,7 @@ flowchart TB
 
     Orchestrator -->|9. Chuyển giao Context Window| Judge
     Judge <-->|Inference & Suy luận sâu| Vertex
-    
+  
     Judge -->|10. Trả về Báo cáo JSON| Orchestrator
     Orchestrator -->|11. Quyết định Exit Code 0/1| GHA
     GHA -->|12. Hiển thị BLOCKED hay PASSED| PR_Comment

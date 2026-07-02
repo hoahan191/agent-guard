@@ -1,7 +1,7 @@
 import typer
 import sys
 from src.orchestrator import AntigravityManager
-from src.tools.arsenal_loader import get_random_weapon
+from src.tools.arsenal_mcp_client import get_weapon_from_mcp
 from src.tools.reporter import generate_html_report
 
 app = typer.Typer()
@@ -12,9 +12,10 @@ def scan(target_url: str = "http://127.0.0.1:8000/chat"):
     
     manager = AntigravityManager(target_url=target_url)
     
-    # 🎲 Tích hợp Jailbreak Arsenal: Chọn vũ khí ngẫu nhiên
-    weapon = get_random_weapon()
-    typer.echo(f"⚔️ [Arsenal] Đã nạp vũ khí: {weapon['name']} (ID: {weapon['id']})")
+    # 🔌 [MCP Client] Kết nối Arsenal MCP Server để lấy vũ khí ngẫu nhiên
+    typer.echo("🔌 [MCP] Đang kết nối tới Jailbreak Arsenal Server...")
+    weapon = get_weapon_from_mcp()
+    typer.echo(f"⚔️ [MCP Arsenal] Đã nạp vũ khí: {weapon['name']} (ID: {weapon['id']})")
     
     test_objective = weapon["objective"]
     judge_result = manager.execute_round(attack_objective=test_objective)

@@ -5,3 +5,4 @@ typer
 jinja2
 requests
 rich
+mcp[cli]
