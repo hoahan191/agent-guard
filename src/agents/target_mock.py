@@ -10,8 +10,8 @@ class ChatRequest(BaseModel):
 async def chat_endpoint(request: ChatRequest):
     user_msg = request.message.lower()
     
-    # 🛡️ Bổ sung lớp khiên phòng thủ vững chắc: Chặn các từ khóa nhạy cảm
+    # 🛡️ Defense layer: Block known attack keywords
     if any(keyword in user_msg for keyword in ["developer", "system prompt", "debug", "ignore", "base64", "override"]):
-        return {"response": "🛑 [TỪ CHỐI] Tôi là trợ lý ảo an toàn. Tôi từ chối cung cấp thông tin nội bộ hoặc thay đổi cấu hình bảo mật."}
+        return {"response": "🛑 [REFUSED] I am a safe virtual assistant. I refuse to provide internal information or modify security configurations."}
     
-    return {"response": "Chào bạn, tôi là trợ lý ảo. Tôi không thể giúp bạn làm việc đó."}
+    return {"response": "Hello, I am a virtual assistant. I cannot help you with that request."}

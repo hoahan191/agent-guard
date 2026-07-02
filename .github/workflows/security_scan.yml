@@ -1,7 +1,7 @@
 name: LLM AgentGuard DevSecOps Scan
 
 on:
-  # ── Trigger thủ công khi push code ───────────────────────────────────────
+  # ── Trigger on code push (diff-scoped) ───────────────────────────────────
   push:
     branches: [ "main" ]
     paths:
@@ -9,7 +9,7 @@ on:
       - '.github/workflows/security_scan.yml'
       - 'requirements.txt'
 
-  # ── Trigger khi mở Pull Request (Diff-scope) ─────────────────────────────
+  # ── Trigger on Pull Requests (diff-scoped) ────────────────────────────────
   pull_request:
     branches: [ "main", "develop" ]
     paths:
@@ -17,16 +17,16 @@ on:
       - '.github/workflows/security_scan.yml'
       - 'requirements.txt'
 
-  # ── Continuous Pentesting: Tự động quét mỗi đêm lúc 2:00 AM UTC ─────────
-  # Ngay cả khi không có PR hay commit nào, hệ thống vẫn tự kiểm tra
+  # ── Continuous Pentesting: Auto-scan every night at 2:00 AM UTC ───────────
+  # Runs even when no PRs or commits are pending — always-on security monitoring
   schedule:
-    - cron: '0 2 * * *'   # 2:00 AM UTC = 9:00 AM ICT (múi giờ Việt Nam)
+    - cron: '0 2 * * *'   # 2:00 AM UTC = 9:00 AM ICT (Vietnam timezone)
 
-  # ── Cho phép kích hoạt thủ công từ tab Actions trên GitHub ───────────────
+  # ── Manual trigger from the GitHub Actions tab ────────────────────────────
   workflow_dispatch:
     inputs:
       scan_mode:
-        description: 'Chọn chế độ scan'
+        description: 'Select scan mode'
         required: false
         default: 'quick'
         type: choice
@@ -36,8 +36,8 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write # Cấp quyền để bot có thể comment kết quả test lên PR
-  id-token: write      # Bắt buộc nếu bạn dùng OIDC để xác thực với AWS/GCP
+  pull-requests: write   # Required for the bot to comment results on PRs
+  id-token: write        # Required for OIDC-based authentication with GCP
 
 jobs:
   agentguard-security-scan:
@@ -48,7 +48,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Cần full history để diff-scope hoạt động đúng
+          fetch-depth: 0  # Full history needed for diff-scope to work correctly
 
       - name: 🐍 Set up Python 3.10
         uses: actions/setup-python@v5
@@ -61,8 +61,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Tùy chọn: Đăng nhập Cloud không cần mật khẩu qua OIDC (Best Practice cho DevSecOps)
-      # - name: Configure GCP Credentials via OIDC (Workload Identity Federation)
+      # Optional: Keyless cloud authentication via OIDC (Workload Identity Federation)
+      # - name: Configure GCP Credentials via OIDC
       #   uses: google-github-actions/auth@v2
       #   with:
       #     workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
@@ -70,16 +70,15 @@ jobs:
 
       - name: 🚀 Start Mock Target API (Background)
         run: |
-          echo "Khởi động Target API cục bộ..."
+          echo "Starting local Target API..."
           PYTHONPATH=. uvicorn src.agents.target_mock:app --host 127.0.0.1 --port 8000 &
-          sleep 3 # Đợi API khởi động hoàn tất
+          sleep 3   # Wait for API to fully start
 
       - name: 🛡️ Execute AgentGuard Red Teaming
         env:
-          # Truyền API Key an toàn từ GitHub Secrets — KHÔNG BAO GIỜ hardcode
+          # API Key injected securely from GitHub Secrets — NEVER hardcoded
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Nếu trigger từ workflow_dispatch thì dùng input của người dùng chọn
-          # Nếu trigger từ cron/push/PR thì dùng "quick" mặc định
+          # Use input from workflow_dispatch; fallback to 'quick' for cron/push/PR triggers
           AGENTGUARD_SCAN_MODE: ${{ github.event.inputs.scan_mode || 'quick' }}
         run: |
           echo "🛡️ Trigger: ${{ github.event_name }}"
@@ -87,9 +86,9 @@ jobs:
           PYTHONPATH=. python src/main.py --mode ${AGENTGUARD_SCAN_MODE} > scan_report.log
 
       - name: 📊 Parse Results & Enforce Security Gate
-        if: always() # Luôn chạy bước này dù test pass hay fail để in log
+        if: always()   # Always run this step regardless of pass/fail — print full logs
         run: |
-          echo "=== KẾT QUẢ ĐÁNH GIÁ TỪ JUDGE AGENT ==="
+          echo "=== JUDGE AGENT EVALUATION RESULTS ==="
           cat scan_report.log
 
       - name: 📤 Upload Security HTML Report
@@ -106,7 +105,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            let commentBody = "🛡️ AgentGuard đã chạy quét bảo mật nhưng không tìm thấy file báo cáo.";
+            let commentBody = "🛡️ AgentGuard security scan completed but no report file was found.";
             if (fs.existsSync('pr_comment.md')) {
               commentBody = fs.readFileSync('pr_comment.md', 'utf8');
             }
