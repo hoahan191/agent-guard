@@ -11,6 +11,12 @@ class AntigravityManager:
             "target_response": "",
             "judge_report": {}
         }
+        # OWASP LLM Top 10 category mapping
+        self.OWASP_LABELS = {
+            "LLM01": "Prompt Injection",
+            "LLM02": "Sensitive Information Disclosure",
+            "LLM07": "System Prompt Leakage",
+        }
         self.attacker = AttackerAgent()
         self.judge = JudgeAgent()
 
@@ -47,4 +53,7 @@ class AntigravityManager:
         self.state["judge_report"] = report.model_dump()
         
         print(f"📊 Kết quả đánh giá: {self.state['judge_report']}")
+        owasp = report.owasp_category
+        owasp_label = self.OWASP_LABELS.get(owasp, "N/A")
+        print(f"🔖 OWASP LLM Top 10: {owasp} — {owasp_label}")
         return report
