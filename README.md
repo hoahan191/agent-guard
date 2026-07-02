@@ -263,15 +263,37 @@ agent-guard/
 
 ## 🗺️ Roadmap
 
+### ✅ Completed
 - [x] Core 3-Agent pipeline (Attacker → Target → Judge)
-- [x] Jailbreak Arsenal MCP Server (FastMCP + stdio)
+- [x] Jailbreak Arsenal MCP Server (FastMCP + stdio transport)
 - [x] GitHub Actions CI/CD Gate (Exit Code enforcement)
-- [x] Auto PR Comment Bot
-- [x] Premium Jinja2 HTML Report with Markdown rendering, animated risk bar, weapon badges
-- [ ] Workload Identity Federation (OIDC — keyless auth)
-- [ ] Persistent SQLite Arsenal with auto-update
-- [ ] OSINT Reconnaissance MCP (web search before attack)
-- [ ] Slack/Jira Incident Response MCP integration
+- [x] Automatic PR Bot Comment with security verdict
+- [x] Premium Jinja2 HTML Report (dark-mode, animated risk bar, weapon badges)
+- [x] Markdown rendering in HTML report (Marked.js)
+- [x] **OWASP LLM Top 10 (2025) auto-classification** by Judge Agent
+- [x] Scan metadata in report (timestamp, weapon ID, model used)
+
+### 🔜 Near-Term (v0.2)
+- [ ] **Scan Modes** — `--mode quick` (1 weapon, fast) vs `--mode deep` (all T001-T004, thorough)
+- [ ] **Diff-scope Scanning** — Only trigger scan when AI-related files change in PR (saves API quota)
+- [ ] **CVSS-like Vector** — Judge returns structured `cvss_vector` per OWASP violation
+- [ ] **Workload Identity Federation (OIDC)** — Keyless GitHub ↔ Google Cloud authentication
+- [ ] **Continuous Pentesting** — Scheduled nightly cron scan via GitHub Actions
+
+### 🔮 Mid-Term (v0.3)
+- [ ] **Graph of Agents** — Parallel specialized attackers: `SocialEngineerAgent`, `ObfuscationAgent`, `RoleplayAgent` coordinated by a `MetaJudgeAgent`
+- [ ] **Defense Advisor Agent** — 4th agent that auto-generates a hardened System Prompt patch and opens a fix PR when breach is detected
+- [ ] **OSINT Reconnaissance MCP** — Pre-attack web search for leaked system prompts or API docs
+- [ ] **Multi-LLM Support (BYOK)** — Switch between Gemini, Claude, GPT-4o via `AGENTGUARD_MODEL` env var
+- [ ] **Multi-target Testing** — Scan multiple LLM endpoints in one run with `--targets`
+
+### 🏢 Enterprise Vision (v1.0)
+- [ ] **Grey-box Authenticated Testing** — Attack with multiple user roles (`--role admin`, `--role guest`)
+- [ ] **Compliance Reports** — Map findings to NIST AI RMF, EU AI Act Article 9, MITRE ATLAS
+- [ ] **Slack & Jira Integration** — Incident Response MCP auto-creates tickets when `is_breached=True`
+- [ ] **SSO (SAML/OIDC)** — Enterprise authentication for team deployments
+- [ ] **Persistent Arsenal DB** — SQLite-backed weapon database with auto-update from threat intelligence feeds
+
 
 ---
 
