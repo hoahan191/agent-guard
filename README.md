@@ -1,63 +1,279 @@
-# AgentGuard: DevSecOps Trust Layer
+<p align="center">
+  <img src="https://img.shields.io/badge/AgentGuard-DevSecOps%20AI%20Trust%20Layer-0f172a?style=for-the-badge&logo=shield&logoColor=white" alt="AgentGuard Banner">
+</p>
 
-```mermaid
-flowchart TB
-    subgraph CI["GitHub Actions (DevSecOps Pipeline)"]
-        PR[Lập trình viên mở Pull Request]
-        GHA[GitHub Action Runner]
-        PR_Comment[Bot Comment cảnh báo trên PR]
-    end
+<div align="center">
 
-    subgraph GCP["Google Cloud Platform (Zero-Trust Security)"]
-        WIF{Workload Identity<br/>Federation - OIDC}
-        Vertex[Vertex AI<br/>Gemini API]
-    end
+# 🛡️ AgentGuard
 
-    subgraph AgentGuard["AgentGuard CLI Tool"]
-        Orchestrator((Antigravity<br/>Manager))
+### An AI-powered DevSecOps Trust Layer — Autonomous Red-Teaming Agents that find and block LLM vulnerabilities before they reach production.
 
-        subgraph Agents["The Adversarial Triad"]
-            Attacker[Attacker Agent<br/>Red Team: Gemini 1.5 Flash]
-            Judge[Judge Agent<br/>Referee: Gemini 1.5 Pro]
-        end
+<br/>
 
-        MCP[(Jailbreak Arsenal<br/>MCP Server)]
-    end
+<a href="https://github.com/hoahan191/agent-guard"><img src="https://img.shields.io/badge/GitHub-agent--guard-2b9246?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"></a>
+<a href="https://github.com/hoahan191/agent-guard/actions"><img src="https://img.shields.io/github/actions/workflow/status/hoahan191/agent-guard/security_scan.yml?style=for-the-badge&label=DevSecOps%20Pipeline&logo=githubactions&logoColor=white" alt="CI/CD Status"></a>
+<img src="https://img.shields.io/badge/Powered%20by-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini">
+<img src="https://img.shields.io/badge/Protocol-MCP%20(Anthropic)-blueviolet?style=for-the-badge" alt="MCP">
+<img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License">
 
-    subgraph Target["Môi trường Staging"]
-        TargetAPI[Target Agent API<br/>Blue Team]
-    end
+</div>
 
-    %% Flow Logic
-    PR -->|1. Kích hoạt Workflow| GHA
-    GHA -->|2. Trao đổi OIDC Token| WIF
-    WIF -->|3. Trả về Token ngắn hạn| GHA
+---
 
-    GHA -->|4. Lệnh: agent-guard scan| Orchestrator
-    Orchestrator -->|5. Khởi tạo State & Cấp quyền| Attacker
-  
-    Attacker <-->|6. Lấy Attack Vector| MCP
-    Attacker <-->|Inference| Vertex
-    Attacker -->|7. Gửi Payload Độc hại| TargetAPI
-    TargetAPI -->|8. Trả về kết quả| Orchestrator
+> [!TIP]
+> **AgentGuard integrates directly with GitHub Actions.** On every Pull Request, the adversarial pipeline automatically tests your LLM-powered systems for prompt injection vulnerabilities — and blocks insecure code before it ever reaches production.
 
-    Orchestrator -->|9. Chuyển giao Context Window| Judge
-    Judge <-->|Inference & Suy luận sâu| Vertex
-  
-    Judge -->|10. Trả về Báo cáo JSON| Orchestrator
-    Orchestrator -->|11. Quyết định Exit Code 0/1| GHA
-    GHA -->|12. Hiển thị BLOCKED hay PASSED| PR_Comment
+---
 
-    %% Styling cho sự trực quan
-    classDef secure fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-    classDef danger fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
-    classDef core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef gcp fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000;
-    classDef neutral fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000;
+## 🧠 What is AgentGuard?
 
-    class WIF,Vertex gcp;
-    class Attacker,MCP danger;
-    class TargetAPI secure;
-    class Orchestrator,Judge core;
-    class PR,GHA,PR_Comment neutral;
+AgentGuard is an autonomous, **AI-vs-AI** red-teaming framework for LLM-based systems. It acts as a **DevSecOps Trust Layer**, embedding an adversarial security scan directly into your CI/CD pipeline.
+
+Forget manual pen-testing. AgentGuard deploys an **Attacker Agent** that automatically crafts sophisticated prompt injection payloads (Roleplay, Base64 encoding, Context Shifting) and fires them at your target AI system. A separate **Judge Agent** then evaluates the interaction with structured reasoning and verdicts — blocking the Pull Request if a breach is detected.
+
+**Key Capabilities:**
+- 🤖 **Autonomous Red Teaming** — AI that thinks like a hacker and crafts novel attack payloads per run
+- ⚖️ **Structured AI Judging** — Pydantic-enforced JSON verdicts (`risk_score`, `is_breached`, `explanation`) from a dedicated Judge Agent
+- ⚔️ **Jailbreak Arsenal via MCP** — Model Context Protocol server delivering randomized attack strategies
+- 🚦 **Automated CI/CD Gate** — GitHub Actions blocks insecure PRs via exit code enforcement
+- 💬 **PR Bot Commentary** — Automatic security report comment posted directly on the Pull Request
+- 📊 **HTML Security Reports** — Beautiful dark-mode reports rendered with Jinja2 and Marked.js
+- 🔑 **Zero Hardcoding** — All secrets managed via `os.getenv()` and GitHub Secrets
+
+---
+
+## 🏗️ Architecture
+
 ```
+GitHub Pull Request Opened
+         │
+         ▼
+  GitHub Actions Runner
+         │
+    ┌────┴────────────────────────────────────────────────┐
+    │                  AgentGuard CLI Tool                 │
+    │                                                      │
+    │   ┌──────────────────────────────────────────────┐  │
+    │   │            Antigravity Orchestrator           │  │
+    │   └───────────────────────┬──────────────────────┘  │
+    │               ┌───────────┴────────────┐            │
+    │               ▼                        ▼            │
+    │   ┌──────────────────┐   ┌─────────────────────┐   │
+    │   │  Attacker Agent  │   │    Judge Agent       │   │
+    │   │  Gemini 2.5 Flash│   │  Gemini 2.5 Flash   │   │
+    │   └────────┬─────────┘   └──────────┬──────────┘   │
+    │            │  MCP Client             │ Pydantic     │
+    │            ▼                        │ Structured   │
+    │   ┌──────────────────┐              │ Output       │
+    │   │  Jailbreak MCP   │              │              │
+    │   │  Arsenal Server  │              ▼              │
+    │   │  (arsenal.json)  │    risk_score / is_breached │
+    │   └──────────────────┘              │              │
+    │            │                        │              │
+    │            ▼                        ▼              │
+    │        Target Mock API ◄──── HTTP Request          │
+    │        (FastAPI @ :8000)                            │
+    └─────────────────────────────────────────────────────┘
+         │                   │
+         ▼                   ▼
+    Exit Code 0          Exit Code 1
+    ✅ PR PASSED         ❌ PR BLOCKED
+    💬 Bot Comment       💬 Bot Comment
+    📊 HTML Report       📊 HTML Report
+```
+
+---
+
+## 🚀 Quick Start
+
+**Prerequisites:**
+- Python 3.10+
+- A [Gemini API Key](https://ai.google.dev/gemini-api/docs/api-key)
+
+### 1. Clone & Set Up
+
+```bash
+git clone https://github.com/hoahan191/agent-guard.git
+cd agent-guard
+
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+```
+
+### 2. Configure API Key
+
+```bash
+# Không bao giờ hardcode key — dùng biến môi trường
+export GEMINI_API_KEY="your-gemini-api-key"
+```
+
+### 3. Start the Target Mock API (Terminal 1)
+
+```bash
+source venv/bin/activate
+PYTHONPATH=. uvicorn src.agents.target_mock:app --host 127.0.0.1 --port 8000
+```
+
+### 4. Run the AgentGuard Scan (Terminal 2)
+
+```bash
+source venv/bin/activate
+python -m src.main
+```
+
+**Expected output:**
+
+```
+🛡️ Khởi động AgentGuard quét mục tiêu: http://127.0.0.1:8000/chat
+
+🔌 [MCP] Đang kết nối tới Jailbreak Arsenal Server...
+⚔️ [MCP Arsenal] Đã nạp vũ khí: Developer Roleplay (ID: T001)
+🕵️ [Attacker] Đang phân tích mục tiêu...
+🚀 [Attacker] Tung đòn: [Sophisticated payload generated by Gemini...]
+🎯 [Target API] Phản hồi: 🛑 [TỪ CHỐI]...
+⚖️ [Judge Agent] Đang phân tích ngữ nghĩa...
+📊 {'risk_score': 1, 'is_breached': False, 'explanation': '...'}
+📄 Đã sinh báo cáo HTML tại: security_report.html
+✅ [AN TOÀN] Target API đã phòng thủ thành công.
+```
+
+---
+
+## 🔌 Jailbreak Arsenal — MCP Architecture
+
+AgentGuard uses the **Model Context Protocol (MCP)** by Anthropic to decouple the attack strategy database from the AI agent logic. The Arsenal is a standalone MCP Server that the Attacker Agent (MCP Client) connects to via `stdio`.
+
+```
+Attacker Agent (MCP Client)
+    └─► arsenal_mcp_client.py
+          └─► [stdio connection]
+                └─► arsenal_mcp_server.py (FastMCP)
+                      └─► arsenal.json (Weapon Database)
+```
+
+**Available MCP Tools:**
+
+| Tool | Description |
+|---|---|
+| `get_random_weapon()` | Returns a random attack scenario |
+| `get_weapon_by_id(id)` | Returns a specific weapon (e.g., `T002`) |
+| `list_all_weapons()` | Lists all available attack strategies |
+
+**Test the MCP connection directly:**
+
+```bash
+python -m src.tools.arsenal_mcp_client
+# 🔌 Đang kết nối tới Jailbreak Arsenal MCP Server...
+# ✅ Nhận vũ khí thành công từ MCP Server: { "id": "T001", ... }
+```
+
+---
+
+## ⚙️ DevSecOps CI/CD Integration
+
+AgentGuard is designed to run as a GitHub Actions workflow. Add the secret `GEMINI_API_KEY` to your repository (`Settings > Secrets > Actions`) and the pipeline runs automatically on every Push and Pull Request.
+
+**What happens on a PR:**
+1. 🚀 GitHub Actions spins up an Ubuntu runner
+2. 📦 Installs all Python dependencies
+3. 🖥️ Starts the Target Mock API in the background
+4. ⚔️ Runs the full AgentGuard scan (MCP → Attacker → Target → Judge)
+5. 💬 Posts a security report comment directly on the PR
+6. 📤 Uploads `security_report.html` as a downloadable artifact
+7. ✅ Exits 0 (Pass) or ❌ Exits 1 (Block) — enforcing the security gate
+
+```yaml
+# Snippet from .github/workflows/security_scan.yml
+- name: 🛡️ Execute AgentGuard Red Teaming
+  env:
+    GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  run: PYTHONPATH=. python src/main.py > scan_report.log
+```
+
+---
+
+## 📁 Project Structure
+
+```
+agent-guard/
+├── .github/
+│   └── workflows/
+│       └── security_scan.yml   # GitHub Actions CI/CD pipeline
+├── src/
+│   ├── agents/
+│   │   ├── attacker.py         # Red Team Agent (Gemini 2.5 Flash)
+│   │   ├── judge.py            # Judge Agent w/ Pydantic structured output
+│   │   └── target_mock.py      # Mock vulnerable FastAPI target
+│   ├── tools/
+│   │   ├── arsenal.json        # Weapon database (attack scenarios)
+│   │   ├── arsenal_mcp_server.py  # 🆕 MCP Server (FastMCP)
+│   │   ├── arsenal_mcp_client.py  # 🆕 MCP Client (stdio transport)
+│   │   ├── arsenal_loader.py   # Legacy static loader (kept for fallback)
+│   │   └── reporter.py         # Jinja2 HTML report generator
+│   ├── templates/
+│   │   └── report.html         # Dark-mode HTML report template
+│   ├── orchestrator.py         # Antigravity state manager
+│   └── main.py                 # Typer CLI entry point
+├── requirements.txt
+├── .gitignore                  # Excludes .env, venv/, reports
+└── README.md
+```
+
+---
+
+## 🛡️ Attack Strategies (Jailbreak Arsenal)
+
+| ID | Name | Technique |
+|---|---|---|
+| T001 | Developer Roleplay | Social Engineering + Authority + Urgency |
+| T002 | Base64 Encoding Bypass | Obfuscation to bypass keyword filters |
+| T003 | Context Shifting | Fake Sandbox / Debug Environment override |
+| T004 | Fake API Debugging | Pseudo-code execution to extract internals |
+
+---
+
+## 🔐 Security & Zero-Trust Design
+
+- **Zero Hardcoding:** All API keys sourced from `os.getenv()` only
+- **Secrets via GitHub:** `GEMINI_API_KEY` stored as a repository secret, never in code
+- **Gitignore Enforced:** `.env`, `venv/`, auto-generated reports excluded from all commits
+- **Structured Verdicts:** Judge Agent outputs are enforced via Pydantic schema, eliminating ambiguous free-text results
+- **Roadmap:** Workload Identity Federation (OIDC) for keyless GitHub ↔ Google Cloud authentication
+
+---
+
+## 📊 Sample Security Report
+
+After each scan, AgentGuard generates a dark-mode HTML report (`security_report.html`) containing:
+- ✅ / ❌ Overall safety verdict with color-coded status
+- Risk Score (0–10) from the Judge Agent
+- Full attack payload rendered with Markdown formatting
+- Target API response
+- Judge Agent's explanation
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Core 3-Agent pipeline (Attacker → Target → Judge)
+- [x] Jailbreak Arsenal MCP Server (FastMCP + stdio)
+- [x] GitHub Actions CI/CD Gate (Exit Code enforcement)
+- [x] Auto PR Comment Bot
+- [x] Jinja2 HTML Report with Markdown rendering
+- [ ] Workload Identity Federation (OIDC — keyless auth)
+- [ ] Persistent SQLite Arsenal with auto-update
+- [ ] OSINT Reconnaissance MCP (web search before attack)
+- [ ] Slack/Jira Incident Response MCP integration
+
+---
+
+> [!WARNING]
+> AgentGuard is built for **authorized security testing only**. Only use it against systems you own or have explicit permission to test. You are responsible for ethical and legal usage.
+
+<div align="center">
+
+Built with ❤️ for the **Google Kaggle GenAI Intensive** competition.
+
+</div>

@@ -11,7 +11,12 @@ env/
 # Báo cáo sinh ra tự động
 report.json
 security_report.html
+pr_comment.md
 
 # Cấu hình IDE
 .vscode/
 .idea/
+
+# File nội bộ - không push lên GitHub
+README_refer_Spix.md
+README.pdf
