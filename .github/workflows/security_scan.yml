@@ -61,12 +61,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Optional: Keyless cloud authentication via OIDC (Workload Identity Federation)
-      # - name: Configure GCP Credentials via OIDC
-      #   uses: google-github-actions/auth@v2
-      #   with:
-      #     workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-      #     service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      # Keyless GCP authentication via OIDC (Workload Identity Federation)
+      # No JSON keys stored — token is issued per-run with 1-hour TTL
+      - name: 🔐 Configure GCP Credentials via OIDC
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: 🚀 Start Mock Target API (Background)
         run: |

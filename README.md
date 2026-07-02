@@ -388,7 +388,7 @@ agent-guard/
 - [x] **Diff-scope Scanning** — Only triggers when AI-related files change (saves API quota)
 - [x] **CVSS-like Vector** — Judge returns structured `cvss_vector` per OWASP violation
 - [x] **Continuous Pentesting** — Nightly cron scan (2AM UTC) + manual `workflow_dispatch` with dropdown
-- [ ] **Workload Identity Federation (OIDC)** — Requires GCP Console setup (see Security section)
+- [x] **Workload Identity Federation (OIDC)** — Keyless GitHub ↔ Google Cloud authentication (zero JSON keys)
 
 ### 🔮 v0.3 — Mid-Term
 - [ ] **Graph of Agents** — Parallel specialized attackers: `SocialEngineerAgent`, `ObfuscationAgent`, `RoleplayAgent` coordinated by a `MetaJudgeAgent`
