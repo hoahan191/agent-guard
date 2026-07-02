@@ -24,7 +24,7 @@ def scan(target_url: str = "http://127.0.0.1:8000/chat"):
         sys.exit(1)
 
     # 📄 Tạo báo cáo HTML đẹp mắt
-    report_path = generate_html_report(manager.state)
+    report_path = generate_html_report(manager.state, weapon=weapon)
     print(f"📄 Đã sinh báo cáo HTML tại: {report_path}")
 
     # 💬 Tạo Markdown Comment cho Pull Request

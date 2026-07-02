@@ -1,7 +1,8 @@
 import os
+from datetime import datetime, timezone
 from jinja2 import Environment, FileSystemLoader
 
-def generate_html_report(state: dict, output_path: str = "security_report.html"):
+def generate_html_report(state: dict, weapon: dict = None, output_path: str = "security_report.html"):
     """
     Render báo cáo HTML từ state của AgentGuard sử dụng Jinja2.
     """
@@ -13,13 +14,21 @@ def generate_html_report(state: dict, output_path: str = "security_report.html")
     # Thiết lập Jinja2 Environment
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template("report.html")
-    
-    # Render HTML với dữ liệu từ state
+
+    # Chuẩn bị metadata cho report
+    scan_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    weapon_info = weapon or {"id": "N/A", "name": "Unknown"}
+
+    # Render HTML với dữ liệu từ state + metadata
     html_content = template.render(
         attack_objective=state.get("attack_objective", ""),
         attack_prompt=state.get("attack_prompt", ""),
         target_response=state.get("target_response", ""),
-        judge_report=state.get("judge_report", {})
+        judge_report=state.get("judge_report", {}),
+        weapon=weapon_info,
+        scan_time=scan_time,
+        model_attacker="gemini-2.5-flash",
+        model_judge="gemini-2.5-flash",
     )
     
     # Ghi ra file
