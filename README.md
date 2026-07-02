@@ -47,6 +47,20 @@ Forget manual pen-testing. AgentGuard deploys an **Attacker Agent** that automat
 
 ---
 
+## 🎯 Use Cases
+
+AgentGuard is built for any team shipping AI-powered products. Here's when to reach for it:
+
+| Who | Scenario | How AgentGuard Helps |
+|---|---|---|
+| **DevOps Engineer** | Adding a Gemini-powered chatbot to your app | Plug into your PR pipeline — no security expertise needed |
+| **Security Researcher** | Auditing an LLM API for prompt injection flaws | Run `--mode deep` to fire all 4 attack vectors and get a structured CVSS report |
+| **AI/ML Engineer** | Testing a new system prompt's resistance | Compare risk scores across iterations — block regressions automatically |
+| **Engineering Manager** | Ensuring AI features meet compliance standards | Get OWASP LLM Top 10 tagging on every scan for audit trails |
+| **Red Teamer** | Simulating adversarial attacks on LLM-based products | Extend the Jailbreak Arsenal with custom `arsenal.json` entries |
+
+
+
 ## 📸 Report Preview
 
 > A live scan result from the CI/CD pipeline — **SECURE** verdict with OWASP classification and animated risk bar.
@@ -164,6 +178,65 @@ python -m src.main --mode quick --target http://your-llm-api.com/chat
 ```
 
 ---
+
+## 🔬 Advanced Testing Scenarios
+
+### Scenario 1 — Exhaustive Deep Scan on a Remote API
+Run all 4 attack weapons against a live staging endpoint. AgentGuard picks the worst result and generates a unified report:
+```bash
+python -m src.main --mode deep --target https://staging.your-app.com/api/chat
+```
+
+### Scenario 2 — Manual Trigger with Deep Scan on GitHub Actions
+Trigger a one-off scan directly from the GitHub UI without waiting for a PR:
+1. Go to your repo → **Actions** tab
+2. Select **LLM AgentGuard DevSecOps Scan**
+3. Click **Run workflow** → choose `deep` from the dropdown → **Run**
+
+### Scenario 3 — Extend the Jailbreak Arsenal
+Add a custom attack weapon to `src/tools/arsenal.json`:
+```json
+{
+    "id": "T005",
+    "name": "Indirect Prompt Injection via RAG",
+    "objective": "Inject adversarial instructions into a document that the RAG pipeline will retrieve, causing the LLM to execute unintended commands."
+}
+```
+Run `--mode deep` and T005 will be included automatically.
+
+### Scenario 4 — Point at Your Own LLM API
+Replace the mock target with your actual API endpoint (must accept `POST /chat` with `{"message": "..."}`):
+```bash
+export GEMINI_API_KEY="your-key"
+python -m src.main --mode quick --target http://localhost:3000/api/chat
+```
+
+---
+
+## ⚙️ Configuration Reference
+
+### CLI Options
+
+| Flag | Default | Description |
+|---|---|---|
+| `--target` / `-t` | `http://127.0.0.1:8000/chat` | URL of the Target LLM API to attack |
+| `--mode` / `-m` | `quick` | `quick` = 1 random weapon via MCP \| `deep` = all T001-T004 |
+
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | ✅ Yes | Your Google Gemini API key — [get one here](https://ai.google.dev/gemini-api/docs/api-key) |
+| `AGENTGUARD_SCAN_MODE` | ❌ No | Override scan mode in CI (`quick` or `deep`). Defaults to `quick` |
+
+### GitHub Actions Secrets
+
+| Secret | Required | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | ✅ Yes | Injected into CI runner securely via `${{ secrets.GEMINI_API_KEY }}` |
+| `WIF_PROVIDER` | ❌ Optional | For OIDC keyless auth (Workload Identity Federation) |
+| `WIF_SERVICE_ACCOUNT` | ❌ Optional | GCP Service Account for OIDC |
+
 
 ## 🔌 Jailbreak Arsenal — MCP Architecture
 
