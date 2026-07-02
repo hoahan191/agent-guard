@@ -118,7 +118,7 @@ pip install -r requirements.txt
 ### 2. Configure API Key
 
 ```bash
-# Không bao giờ hardcode key — dùng biến môi trường
+# Never hardcode your API key — use environment variables
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
