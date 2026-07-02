@@ -140,19 +140,19 @@ python -m src.main --mode quick --target http://your-llm-api.com/chat
 
 ```
 🛡️  AgentGuard v0.2 — DevSecOps Trust Layer
-🎯  Mục tiêu: http://127.0.0.1:8000/chat
-⚙️   Chế độ: 🚀 QUICK (1 vũ khí ngẫu nhiên)
+🎯  Target: http://127.0.0.1:8000/chat
+⚙️   Mode: 🚀 QUICK (1 random weapon)
 
-🔌 [MCP] Đang kết nối tới Jailbreak Arsenal Server...
-⚔️  [MCP Arsenal] Đã nạp vũ khí: Context Shifting & Ignorance (ID: T003)
-🕵️ [Attacker] Đang phân tích mục tiêu...
-🚀 [Attacker] Tung đòn: [AI-generated payload...]
-🎯 [Target API] Phản hồi: 🛑 [TỪ CHỐI]...
-⚖️ [Judge Agent] Đang phân tích...
+🔌 [MCP] Connecting to Jailbreak Arsenal Server...
+⚔️  [MCP Arsenal] Weapon loaded: Context Shifting & Ignorance (ID: T003)
+🕵️  [Attacker] Analyzing target...
+🚀 [Attacker] Payload launched: [AI-generated payload...]
+🎯 [Target API] Response: 🛑 [REFUSED]...
+⚖️  [Judge Agent] Performing semantic analysis...
 📊 risk_score=1, is_breached=False, owasp=N/A, cvss=N/A
-🔖 OWASP LLM Top 10: N/A
-📄 Đã sinh báo cáo HTML tại: security_report.html
-✅ [AN TOÀN] CVSS: N/A — Cho phép Merge Code!
+🔖 OWASP LLM Top 10: N/A — No Violation
+📄 HTML report generated at: security_report.html
+✅ [SECURE] CVSS: N/A — Merge is allowed!
 ```
 
 ---
@@ -181,8 +181,8 @@ Attacker Agent (MCP Client)
 
 ```bash
 python -m src.tools.arsenal_mcp_client
-# 🔌 Đang kết nối tới Jailbreak Arsenal MCP Server...
-# ✅ Nhận vũ khí thành công từ MCP Server: { "id": "T001", ... }
+# 🔌 Connecting to Jailbreak Arsenal MCP Server...
+# ✅ Successfully received weapon from MCP Server: { "id": "T001", ... }
 ```
 
 ---
