@@ -47,6 +47,14 @@ Forget manual pen-testing. AgentGuard deploys an **Attacker Agent** that automat
 
 ---
 
+## 📸 Report Preview
+
+> A live scan result from the CI/CD pipeline — **SECURE** verdict with OWASP classification and animated risk bar.
+
+![AgentGuard Security Report Preview](docs/assets/security_report_preview.png)
+
+
+
 ## 🏗️ Architecture
 
 ```
