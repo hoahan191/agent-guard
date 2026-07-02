@@ -75,45 +75,12 @@ AgentGuard is built for any team shipping AI-powered products. Here's when to re
 
 ## 🏗️ Architecture
 
-```
-GitHub Pull Request Opened
-         │
-         ▼
-  GitHub Actions Runner
-         │
-    ┌────┴────────────────────────────────────────────────┐
-    │                  AgentGuard CLI Tool                 │
-    │                                                      │
-    │   ┌──────────────────────────────────────────────┐  │
-    │   │            Antigravity Orchestrator           │  │
-    │   └───────────────────────┬──────────────────────┘  │
-    │               ┌───────────┴────────────┐            │
-    │               ▼                        ▼            │
-    │   ┌──────────────────┐   ┌─────────────────────┐   │
-    │   │  Attacker Agent  │   │    Judge Agent       │   │
-    │   │  Gemini 2.5 Flash│   │  Gemini 2.5 Flash   │   │
-    │   └────────┬─────────┘   └──────────┬──────────┘   │
-    │            │  MCP Client             │ Pydantic     │
-    │            ▼                        │ Structured   │
-    │   ┌──────────────────┐              │ Output       │
-    │   │  Jailbreak MCP   │              │              │
-    │   │  Arsenal Server  │              ▼              │
-    │   │  (arsenal.json)  │    risk_score / is_breached │
-    │   └──────────────────┘              │              │
-    │            │                        │              │
-    │            ▼                        ▼              │
-    │        Target Mock API ◄──── HTTP Request          │
-    │        (FastAPI @ :8000)                            │
-    └─────────────────────────────────────────────────────┘
-         │                   │
-         ▼                   ▼
-    Exit Code 0          Exit Code 1
-    ✅ PR PASSED         ❌ PR BLOCKED
-    💬 Bot Comment       💬 Bot Comment
-    📊 HTML Report       📊 HTML Report
-```
+![AgentGuard Architecture](docs/assets/architecture.png)
+
+> **Full flow:** Developer opens PR → GitHub Actions triggers → OIDC keyless auth with GCP → AgentGuard CLI launches → Attacker Agent fetches weapon from MCP Arsenal → fires payload at Target API → Judge Agent evaluates with Gemini 2.5 Flash → `risk_score` / `is_breached` / `OWASP` / `CVSS` verdict → PR PASSED ✅ or BLOCKED ❌ + Bot Comment
 
 ---
+
 
 ## 🚀 Quick Start
 
