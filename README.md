@@ -32,18 +32,22 @@ AgentGuard is an autonomous, **AI-vs-AI** red-teaming framework for LLM-based sy
 Forget manual pen-testing. AgentGuard deploys an **Attacker Agent** that automatically crafts sophisticated prompt injection payloads (Roleplay, Base64 encoding, Context Shifting) and fires them at your target AI system. A separate **Judge Agent** then evaluates the interaction with structured reasoning and verdicts — blocking the Pull Request if a breach is detected.
 
 **Key Capabilities:**
-- 🤖 **Autonomous Red Teaming** — AI that thinks like a hacker, crafts novel attack payloads per run
-- ⚖️ **Structured AI Judging** — Pydantic-enforced JSON verdicts (`risk_score`, `is_breached`, `owasp_category`, `cvss_vector`)
-- ⚔️ **Jailbreak Arsenal via MCP** — Model Context Protocol server delivering randomized attack strategies
-- 🔬 **Dual Scan Modes** — `--mode quick` (fast, 1 weapon) or `--mode deep` (thorough, all T001-T004)
-- 🏷️ **OWASP LLM Top 10 Classification** — Judge auto-tags every finding with the relevant OWASP category
-- 🔐 **CVSS-like Vector** — Structured vulnerability severity vector per OWASP violation
-- 🚦 **Automated CI/CD Gate** — GitHub Actions blocks insecure PRs via exit code enforcement
-- 🌙 **Continuous Pentesting** — Nightly scheduled scans (2AM UTC) + manual `workflow_dispatch` with dropdown
-- 📂 **Diff-scope Scanning** — Only triggers when AI-related files change, saving API quota
-- 💬 **PR Bot Commentary** — Auto security comment with OWASP + CVSS info on every PR
-- 📊 **Premium HTML Security Reports** — Dark-mode, animated risk bar, weapon badges, Markdown rendering
-- 🔑 **Zero Hardcoding** — All secrets via `os.getenv()` and GitHub Secrets
+| Capability | Description |
+|---|---|
+| 🤖 **Autonomous Red Teaming** | AI that thinks like a hacker, crafts novel attack payloads per run |
+| ⚖️ **Structured AI Judging** | Pydantic-enforced JSON verdicts: `risk_score`, `is_breached`, `owasp_category`, `cvss_vector` |
+| ⚔️ **Jailbreak Arsenal via MCP** | Model Context Protocol server delivering randomized attack strategies |
+| 🔬 **Dual Scan Modes** | `--mode quick` (fast, 1 weapon) or `--mode deep` (thorough, all T001-T004) |
+| 🏷️ **OWASP LLM Top 10** | Judge auto-tags every finding with the relevant OWASP LLM Top 10 (2025) category |
+| 🔐 **CVSS-like Vector** | Structured vulnerability severity vector per OWASP violation |
+| 🚦 **Automated CI/CD Gate** | GitHub Actions blocks insecure PRs via exit code enforcement |
+| 🌙 **Continuous Pentesting** | Nightly cron scan (2AM UTC) + manual `workflow_dispatch` with mode dropdown |
+| 📂 **Diff-scope Scanning** | Only triggers when AI-related files change — saves API quota |
+| 💬 **PR Bot Commentary** | Auto security comment with OWASP + CVSS info posted directly on the PR |
+| 📊 **Premium HTML Reports** | Dark-mode, animated risk bar, weapon badges, Markdown rendering |
+| 🔑 **Zero Hardcoding** | All secrets via `os.getenv()` and GitHub Secrets — no credentials in code |
+| 🛡️ **OIDC Keyless Auth** | GitHub Actions ↔ GCP via Workload Identity Federation — zero static credentials |
+
 
 ---
 
