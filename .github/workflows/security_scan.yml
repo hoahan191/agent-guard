@@ -1,20 +1,38 @@
 name: LLM AgentGuard DevSecOps Scan
 
 on:
+  # ── Trigger thủ công khi push code ───────────────────────────────────────
   push:
     branches: [ "main" ]
-    # ── Diff-scope: Chỉ trigger khi các file AI-related thay đổi ──────────
     paths:
       - 'src/**'
       - '.github/workflows/security_scan.yml'
       - 'requirements.txt'
+
+  # ── Trigger khi mở Pull Request (Diff-scope) ─────────────────────────────
   pull_request:
     branches: [ "main", "develop" ]
-    # ── Diff-scope: Tránh đốt quota API khi chỉ sửa README/docs ──────────
     paths:
       - 'src/**'
       - '.github/workflows/security_scan.yml'
       - 'requirements.txt'
+
+  # ── Continuous Pentesting: Tự động quét mỗi đêm lúc 2:00 AM UTC ─────────
+  # Ngay cả khi không có PR hay commit nào, hệ thống vẫn tự kiểm tra
+  schedule:
+    - cron: '0 2 * * *'   # 2:00 AM UTC = 9:00 AM ICT (múi giờ Việt Nam)
+
+  # ── Cho phép kích hoạt thủ công từ tab Actions trên GitHub ───────────────
+  workflow_dispatch:
+    inputs:
+      scan_mode:
+        description: 'Chọn chế độ scan'
+        required: false
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - deep
 
 permissions:
   contents: read
@@ -60,9 +78,12 @@ jobs:
         env:
           # Truyền API Key an toàn từ GitHub Secrets — KHÔNG BAO GIỜ hardcode
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          AGENTGUARD_SCAN_MODE: "quick"   # Đổi thành "deep" để quét toàn bộ kho vũ khí
+          # Nếu trigger từ workflow_dispatch thì dùng input của người dùng chọn
+          # Nếu trigger từ cron/push/PR thì dùng "quick" mặc định
+          AGENTGUARD_SCAN_MODE: ${{ github.event.inputs.scan_mode || 'quick' }}
         run: |
-          echo "Bắt đầu khởi động chiến dịch Red Teaming (mode=${AGENTGUARD_SCAN_MODE})..."
+          echo "🛡️ Trigger: ${{ github.event_name }}"
+          echo "⚙️  Scan mode: ${AGENTGUARD_SCAN_MODE}"
           PYTHONPATH=. python src/main.py --mode ${AGENTGUARD_SCAN_MODE} > scan_report.log
 
       - name: 📊 Parse Results & Enforce Security Gate
