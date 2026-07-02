@@ -209,13 +209,30 @@ Add a custom attack weapon to `src/tools/arsenal.json`:
 Run `--mode deep` and T005 will be included automatically.
 
 ### Scenario 4 — Point at Your Own LLM API
-Replace the mock target with your actual API endpoint (must accept `POST /chat` with `{"message": "..."}`):
+
+Replace the mock target with your actual API endpoint. Run locally first:
+
 ```bash
 export GEMINI_API_KEY="your-key"
-python -m src.main --mode quick --target http://localhost:3000/api/chat
+python -m src.main --mode quick --target https://staging.your-app.com/api/chat
 ```
 
----
+> [!IMPORTANT]
+> **API Contract:** AgentGuard sends `POST` requests with body `{"message": "..."}` and expects a JSON response containing a `"response"` key. If your API uses a different schema, you'll need to adapt `src/agents/target_mock.py` as a reference or add a thin adapter layer.
+
+> [!WARNING]
+> **`localhost` does NOT work in GitHub Actions CI.** The GitHub-hosted runner is a remote Ubuntu VM — it cannot reach your local machine. For CI scanning, your target API must be:
+> - A publicly accessible URL (staging/dev environment), OR
+> - Started as a background process within the same CI job (like the mock target does)
+
+> [!CAUTION]
+> **Real-world checklist before scanning your own API:**
+> - ✅ **Use staging/dev only** — never run red-teaming attacks against your production environment
+> - ✅ **Check rate limits** — deep mode fires 4 rounds; add `--mode quick` if your API has strict rate limits
+> - ✅ **Add auth headers if needed** — if your API requires `Authorization: Bearer <token>`, modify `src/orchestrator.py` to inject the header in the `requests.post()` call
+> - ✅ **Get authorization** — only test systems you own or have explicit written permission to test
+
+
 
 ## ⚙️ Configuration Reference
 
