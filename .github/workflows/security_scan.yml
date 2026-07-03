@@ -1,15 +1,7 @@
 name: LLM AgentGuard DevSecOps Scan
 
 on:
-  # ── Trigger on code push (diff-scoped) ───────────────────────────────────
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'src/**'
-      - '.github/workflows/security_scan.yml'
-      - 'requirements.txt'
-
-  # ── Trigger on Pull Requests (diff-scoped) ────────────────────────────────
+  # ── Trigger on Pull Requests only (not on every push to save API quota) ────
   pull_request:
     branches: [ "main", "develop" ]
     paths:

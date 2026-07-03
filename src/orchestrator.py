@@ -13,6 +13,7 @@ The shared `state` dict acts as a message bus between pipeline stages, accumulat
 data that is later serialized into the HTML security report via reporter.py.
 """
 
+import time
 import requests
 from src.agents.attacker import AttackerAgent
 from src.agents.judge import JudgeAgent
@@ -121,12 +122,16 @@ class AntigravityManager:
         # Stage 3: Pass (attack_prompt, target_response) to Judge Agent for evaluation
         return self.run_judge()
 
-    def run_judge(self):
+    def run_judge(self, max_retries: int = 3):
         """
         Invoke the Judge Agent to evaluate the latest attack-response interaction.
 
-        The Judge operates on the already-populated state dict, ensuring it evaluates
-        the exact same data that will appear in the HTML report.
+        Includes exponential backoff retry logic to gracefully handle 429
+        RESOURCE_EXHAUSTED errors from the Gemini API free tier.
+        Free tier limits: 15 req/min for gemini-2.0-flash.
+
+        Args:
+            max_retries: Number of retry attempts on rate limit errors (default: 3).
 
         Returns:
             JudgeReport: Structured verdict with risk_score, is_breached,
@@ -135,13 +140,29 @@ class AntigravityManager:
         Side effect: Updates self.state["judge_report"] with the serialized verdict,
         which is later consumed by reporter.py to render the HTML template.
         """
-        print("\n⚖️  [Judge Agent] Performing semantic analysis with Gemini 2.5 Flash...")
+        print("\n⚖️  [Judge Agent] Performing semantic analysis with Gemini 2.0 Flash...")
         attack_prompt = self.state["attack_prompt"]
         target_response = self.state["target_response"]
 
-        # Evaluate: the Judge sees only the conversation, not the weapon metadata.
-        # This isolation prevents the Judge from being biased by the attack's intent.
-        report = self.judge.evaluate_interaction(attack_prompt, target_response)
+        # Retry loop with exponential backoff for 429 rate limit handling
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Evaluate: the Judge sees only the conversation, not the weapon metadata.
+                # This isolation prevents the Judge from being biased by the attack's intent.
+                report = self.judge.evaluate_interaction(attack_prompt, target_response)
+                break  # Success — exit retry loop
+
+            except Exception as e:
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    wait = 30 * attempt  # 30s → 60s → 90s exponential backoff
+                    print(f"⏳ [Rate Limit] Gemini API quota hit (attempt {attempt}/{max_retries}). "
+                          f"Retrying in {wait}s...")
+                    if attempt == max_retries:
+                        print("❌ [Rate Limit] Max retries reached. Skipping Judge evaluation.")
+                        raise
+                    time.sleep(wait)
+                else:
+                    raise  # Non-rate-limit error — re-raise immediately
 
         # Serialize the Pydantic model to dict for storage in state and HTML rendering
         self.state["judge_report"] = report.model_dump()
