@@ -13,7 +13,7 @@
 
 <a href="https://github.com/hoahan191/agent-guard"><img src="https://img.shields.io/badge/GitHub-agent--guard-2b9246?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"></a>
 <a href="https://github.com/hoahan191/agent-guard/actions"><img src="https://img.shields.io/github/actions/workflow/status/hoahan191/agent-guard/security_scan.yml?style=for-the-badge&label=DevSecOps%20Pipeline&logo=githubactions&logoColor=white" alt="CI/CD Status"></a>
-<img src="https://img.shields.io/badge/Powered%20by-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini">
+<img src="https://img.shields.io/badge/Powered%20by-Google%20Antigravity%20(ADK)-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google Antigravity SDK">
 <img src="https://img.shields.io/badge/Protocol-MCP%20(Anthropic)-blueviolet?style=for-the-badge" alt="MCP">
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License"></a>
 
@@ -28,9 +28,9 @@
 
 ## 🧠 What is AgentGuard?
 
-AgentGuard is an autonomous, **AI-vs-AI** red-teaming framework for LLM-based systems. It acts as a **DevSecOps Trust Layer**, embedding an adversarial security scan directly into your CI/CD pipeline.
+AgentGuard is an autonomous, **AI-vs-AI** red-teaming framework for LLM-based systems, powered by the **Google Antigravity (ADK) SDK**. It acts as a **DevSecOps Trust Layer**, embedding an adversarial security scan directly into your CI/CD pipeline.
 
-Forget manual pen-testing. AgentGuard deploys an **Attacker Agent** that automatically crafts sophisticated prompt injection payloads (Roleplay, Base64 encoding, Context Shifting) and fires them at your target AI system. A separate **Judge Agent** then evaluates the interaction with structured reasoning and verdicts — blocking the Pull Request if a breach is detected.
+Forget manual pen-testing. AgentGuard deploys an **Attacker Agent** (ADK `Agent` with native MCP integration) that automatically crafts sophisticated prompt injection payloads (Roleplay, Base64 encoding, Context Shifting) and fires them at your target AI system. A separate **Judge Agent** (ADK `Agent` with `response_schema` for structured output) then evaluates the interaction with structured reasoning and verdicts — blocking the Pull Request if a breach is detected.
 
 **Key Capabilities:**
 | Capability | Description |
@@ -78,7 +78,7 @@ AgentGuard is built for any team shipping AI-powered products. Here's when to re
 
 ![AgentGuard Architecture](docs/assets/architecture.png)
 
-> **Full flow:** Developer opens PR → GitHub Actions triggers → OIDC keyless auth with GCP → AgentGuard CLI launches → Attacker Agent fetches weapon from MCP Arsenal → fires payload at Target API → Judge Agent evaluates with Gemini 2.5 Flash → `risk_score` / `is_breached` / `OWASP` / `CVSS` verdict → PR PASSED ✅ or BLOCKED ❌ + Bot Comment
+> **Full flow:** Developer opens PR → GitHub Actions triggers → OIDC keyless auth with GCP → AgentGuard CLI launches → ADK Attacker Agent fetches weapon from MCP Arsenal (via native `mcp_servers` config) → fires payload at Target API → ADK Judge Agent evaluates with structured output (`response_schema=JudgeReport`) → `risk_score` / `is_breached` / `OWASP` / `CVSS` verdict → PR PASSED ✅ or BLOCKED ❌ + Bot Comment
 
 ---
 
@@ -133,7 +133,7 @@ python -m src.main --mode quick --target http://your-llm-api.com/chat
 **Expected output (quick mode — ✅ SECURE):**
 
 ```
-🛡️  AgentGuard v0.2 — DevSecOps Trust Layer
+🛡️  AgentGuard v0.3 — DevSecOps Trust Layer (Powered by Google Antigravity SDK)
 🎯  Target: http://127.0.0.1:8000/chat
 ⚙️   Mode: 🚀 QUICK (1 random weapon)
 
@@ -340,19 +340,20 @@ agent-guard/
 │       └── security_scan.yml   # GitHub Actions CI/CD pipeline
 ├── src/
 │   ├── agents/
-│   │   ├── attacker.py         # Red Team Agent (Gemini 2.5 Flash)
-│   │   ├── judge.py            # Judge Agent w/ Pydantic structured output
-│   │   └── target_mock.py      # Mock vulnerable FastAPI target
+│   │   ├── attacker.py         # ADK Attacker Agent (native MCP + red-team persona)
+│   │   ├── judge.py            # ADK Judge Agent (response_schema=JudgeReport)
+│   │   ├── target_mock.py      # Mock secure FastAPI target
+│   │   └── target_mock_vulnerable.py  # Intentionally vulnerable target (demo)
 │   ├── tools/
 │   │   ├── arsenal.json           # Weapon database (attack scenarios)
 │   │   ├── arsenal_mcp_server.py  # MCP Server (FastMCP)
-│   │   ├── arsenal_mcp_client.py  # MCP Client (stdio transport)
-│   │   ├── arsenal_loader.py      # Legacy static loader (fallback)
+│   │   ├── arsenal_mcp_client.py  # MCP Client (fallback for quick mode)
+│   │   ├── arsenal_loader.py      # Local loader (fallback)
 │   │   └── reporter.py            # Jinja2 HTML report generator
 │   ├── templates/
 │   │   └── report.html         # Premium dark-mode HTML report template
-│   ├── orchestrator.py         # Antigravity state manager
-│   └── main.py                 # Typer CLI entry point
+│   ├── orchestrator.py         # AntigravityManager (async ADK orchestrator)
+│   └── main.py                 # Typer CLI + asyncio.run() bridge
 ├── LICENSE                     # Apache 2.0
 ├── requirements.txt
 ├── .gitignore
@@ -401,7 +402,15 @@ agent-guard/
 - [x] **Continuous Pentesting** — Nightly cron scan (2AM UTC) + manual `workflow_dispatch` with dropdown
 - [x] **Workload Identity Federation (OIDC)** — Keyless GitHub ↔ Google Cloud authentication (zero JSON keys)
 
-### 🔮 v0.3 — Mid-Term
+### ✅ v0.3 — Completed (Google Antigravity SDK Migration)
+- [x] **ADK Agent Framework** — Migrated from `google-genai` SDK to `google-antigravity` (ADK) Agent framework
+- [x] **Native MCP Integration** — Attacker Agent connects to Arsenal via ADK's `mcp_servers=[McpStdioServer(...)]`
+- [x] **ADK Structured Output** — Judge Agent uses `LocalAgentConfig(response_schema=JudgeReport)` + `response.structured_output()`
+- [x] **Async Pipeline** — Full async orchestrator supporting ADK Agent lifecycle (`async with Agent(config)`)
+- [x] **Intentionally Vulnerable Target** — `target_mock_vulnerable.py` for breach detection demos (OWASP LLM01/02/07)
+- [x] **English-only Comments** — All Vietnamese comments translated for international judges
+
+### 🔮 v0.4 — Mid-Term
 - [ ] **Graph of Agents** — Parallel specialized attackers: `SocialEngineerAgent`, `ObfuscationAgent`, `RoleplayAgent` coordinated by a `MetaJudgeAgent`
 - [ ] **Defense Advisor Agent** — 4th agent that auto-generates a hardened System Prompt patch and opens a fix PR when breach detected
 - [ ] **OSINT Reconnaissance MCP** — Pre-attack web search for leaked system prompts or API docs
