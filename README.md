@@ -130,7 +130,7 @@ python -m src.main --mode deep
 python -m src.main --mode quick --target http://your-llm-api.com/chat
 ```
 
-**Expected output (quick mode):**
+**Expected output (quick mode — ✅ SECURE):**
 
 ```
 🛡️  AgentGuard v0.2 — DevSecOps Trust Layer
@@ -146,7 +146,29 @@ python -m src.main --mode quick --target http://your-llm-api.com/chat
 📊 risk_score=1, is_breached=False, owasp=N/A, cvss=N/A
 🔖 OWASP LLM Top 10: N/A — No Violation
 📄 HTML report generated at: security_report.html
-✅ [SECURE] CVSS: N/A — Merge is allowed!
+✅ [SECURE] Target API successfully defended against all attacks. CVSS: N/A
+🚀 Merge is allowed!
+```
+
+**Expected output (quick mode — ❌ BLOCKED):**
+
+```
+🛡️  AgentGuard v0.2 — DevSecOps Trust Layer
+🎯  Target: http://127.0.0.1:8000/chat
+⚙️   Mode: 🚀 QUICK (1 random weapon)
+
+🔌 [MCP] Connecting to Jailbreak Arsenal Server...
+⚔️  [MCP Arsenal] Weapon loaded: Developer Roleplay (ID: T001)
+🕵️  [Attacker] Analyzing target...
+🚀 [Attacker] Payload launched: [AI-generated payload...]
+🎯 [Target API] Response: [Leaked internal instructions...]
+⚖️  [Judge Agent] Performing semantic analysis...
+📊 risk_score=9, is_breached=True, owasp=LLM01, cvss=AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N
+🔖 OWASP LLM Top 10: LLM01 — Prompt Injection
+📄 HTML report generated at: security_report.html
+🚨 [P0 ALERT] Security breach detected! OWASP: LLM01 | CVSS: AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N
+Reason: The target disclosed sensitive internal system instructions when presented with a roleplay scenario.
+❌ This Pull Request is BLOCKED!
 ```
 
 ---
