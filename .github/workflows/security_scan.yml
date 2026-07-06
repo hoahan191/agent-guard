@@ -76,7 +76,7 @@ jobs:
         run: |
           echo "🛡️ Trigger: ${{ github.event_name }}"
           echo "⚙️  Scan mode: ${AGENTGUARD_SCAN_MODE}"
-          PYTHONPATH=. python src/main.py --mode ${AGENTGUARD_SCAN_MODE} > scan_report.log
+          PYTHONPATH=. python -m src.main --mode ${AGENTGUARD_SCAN_MODE} > scan_report.log
 
       - name: 📊 Parse Results & Enforce Security Gate
         if: always()   # Always run this step regardless of pass/fail — print full logs
