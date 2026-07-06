@@ -6,6 +6,12 @@ the full attack-evaluate cycle without coupling the Attacker and Judge together.
 This separation of concerns means each agent can be swapped, upgraded, or
 tested independently.
 
+Architecture change (v0.3):
+    Agents are now powered by the Google Antigravity (ADK) SDK. The Attacker
+    and Judge modules expose async functions that internally create ADK Agent
+    instances. The Orchestrator remains the pipeline coordinator but now operates
+    asynchronously to support ADK's async Agent lifecycle.
+
 State machine:
     IDLE → [execute_round()] → ATTACKING → [HTTP POST] → EVALUATING → [run_judge()] → DONE
 
@@ -15,8 +21,8 @@ data that is later serialized into the HTML security report via reporter.py.
 
 import time
 import requests
-from src.agents.attacker import AttackerAgent
-from src.agents.judge import JudgeAgent
+from src.agents.attacker import generate_payload
+from src.agents.judge import evaluate_interaction, JudgeReport
 
 
 class AntigravityManager:
@@ -24,9 +30,9 @@ class AntigravityManager:
     Central orchestrator for one AgentGuard scan round.
 
     Responsibilities:
-    1. Instantiate and hold references to both agents (Attacker + Judge).
-    2. Coordinate the attack pipeline: generate payload → fire at target → evaluate.
-    3. Maintain shared state across pipeline stages for report generation.
+    1. Coordinate the attack pipeline: generate payload → fire at target → evaluate.
+    2. Maintain shared state across pipeline stages for report generation.
+    3. Delegate to ADK-powered Attacker and Judge agents via async functions.
 
     Design pattern: Pipeline / Chain of Responsibility
     Each stage (generate → fire → judge) passes its output as input to the next,
@@ -37,13 +43,13 @@ class AntigravityManager:
 
     Usage (from main.py):
         manager = AntigravityManager(target_url="http://127.0.0.1:8000/chat")
-        result = manager.execute_round(attack_objective=weapon["objective"])
+        result = await manager.execute_round(attack_objective=weapon["objective"])
         report_path = generate_html_report(manager.state, weapon=weapon)
     """
 
     def __init__(self, target_url: str):
         """
-        Initialize the orchestrator with a target endpoint and both AI agents.
+        Initialize the orchestrator with a target endpoint.
 
         Args:
             target_url: Full URL of the Target LLM API to red-team.
@@ -62,7 +68,7 @@ class AntigravityManager:
             "attack_objective": "",   # High-level goal from arsenal.json (via MCP)
             "attack_prompt": "",      # Synthesized payload from Attacker Agent
             "target_response": "",    # Raw HTTP response from Target API
-            "judge_report": {}        # Structured verdict dict from JudgeAgent.model_dump()
+            "judge_report": {}        # Structured verdict dict from JudgeReport.model_dump()
         }
 
         # Human-readable labels for OWASP categories shown in terminal output.
@@ -73,20 +79,14 @@ class AntigravityManager:
             "LLM07": "System Prompt Leakage",
         }
 
-        # Initialize both agents — each holds its own Gemini client instance.
-        # This allows future flexibility to use different models per agent
-        # (e.g., a larger model for the Judge, a faster one for the Attacker).
-        self.attacker = AttackerAgent()
-        self.judge = JudgeAgent()
-
-    def execute_round(self, attack_objective: str):
+    async def execute_round(self, attack_objective: str):
         """
         Run a complete attack-evaluate pipeline round against the Target API.
 
         Pipeline stages:
-        1. AttackerAgent.generate_payload()  → craft jailbreak payload
-        2. HTTP POST to Target API           → fire payload, capture response
-        3. run_judge()                       → evaluate (attack, response) pair
+        1. ADK Attacker Agent generates payload via generate_payload()
+        2. HTTP POST to Target API — fire payload, capture response
+        3. ADK Judge Agent evaluates via evaluate_interaction()
 
         Args:
             attack_objective: The red-teaming goal for this round.
@@ -99,8 +99,8 @@ class AntigravityManager:
         self.state["attack_objective"] = attack_objective
         print(f"🕵️  [Attacker] Analyzing target: {attack_objective}...")
 
-        # Stage 1: Generate attack payload using Gemini 2.5 Flash (Red Team mode)
-        attack_prompt = self.attacker.generate_payload(attack_objective)
+        # Stage 1: Generate attack payload using ADK Attacker Agent (Gemini-powered)
+        attack_prompt = await generate_payload(attack_objective)
         self.state["attack_prompt"] = attack_prompt
         print(f"🚀 [Attacker] Payload launched:\n{attack_prompt}")
 
@@ -119,16 +119,16 @@ class AntigravityManager:
             print(f"❌ Cannot connect to Target API: {e}")
             return  # Round aborted — no Judge evaluation without a target response
 
-        # Stage 3: Pass (attack_prompt, target_response) to Judge Agent for evaluation
-        return self.run_judge()
+        # Stage 3: Pass (attack_prompt, target_response) to ADK Judge Agent
+        return await self.run_judge()
 
-    def run_judge(self, max_retries: int = 3):
+    async def run_judge(self, max_retries: int = 3):
         """
-        Invoke the Judge Agent to evaluate the latest attack-response interaction.
+        Invoke the ADK Judge Agent to evaluate the latest attack-response interaction.
 
         Includes exponential backoff retry logic to gracefully handle 429
         RESOURCE_EXHAUSTED errors from the Gemini API free tier.
-        Free tier limits: 15 req/min for gemini-2.0-flash.
+        Free tier limits: 1,500 req/day for gemini-2.0-flash.
 
         Args:
             max_retries: Number of retry attempts on rate limit errors (default: 3).
@@ -140,7 +140,7 @@ class AntigravityManager:
         Side effect: Updates self.state["judge_report"] with the serialized verdict,
         which is later consumed by reporter.py to render the HTML template.
         """
-        print("\n⚖️  [Judge Agent] Performing semantic analysis with Gemini 2.0 Flash...")
+        print("\n⚖️  [Judge Agent] Performing semantic analysis with ADK Agent...")
         attack_prompt = self.state["attack_prompt"]
         target_response = self.state["target_response"]
 
@@ -149,7 +149,7 @@ class AntigravityManager:
             try:
                 # Evaluate: the Judge sees only the conversation, not the weapon metadata.
                 # This isolation prevents the Judge from being biased by the attack's intent.
-                report = self.judge.evaluate_interaction(attack_prompt, target_response)
+                report = await evaluate_interaction(attack_prompt, target_response)
                 break  # Success — exit retry loop
 
             except Exception as e:

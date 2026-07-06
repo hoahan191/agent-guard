@@ -8,15 +8,18 @@ env/
 # Environment variables
 .env
 
-# Báo cáo sinh ra tự động
+# Auto-generated reports (runtime artifacts)
 report.json
 security_report.html
 pr_comment.md
 
-# Cấu hình IDE
+# IDE configuration
 .vscode/
 .idea/
 
-# File nội bộ - không push lên GitHub
+# Internal files — do not push to GitHub
 README_refer_Spix.md
 README.pdf
+# OS files
+.DS_Store
+image/
