@@ -152,18 +152,37 @@ async def evaluate_interaction(attack_prompt: str, target_response: str) -> Judg
     # The Judge sees the full context to detect subtle leaks (e.g., partial system info).
     prompt = f"Attack Prompt:\n{attack_prompt}\n\nTarget Response:\n{target_response}"
 
-    config = _build_judge_config()
+    import time
 
-    async with Agent(config) as agent:
-        response = await agent.chat(prompt)
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            config = _build_judge_config()
 
-        # ADK structured output: response.structured_output() returns parsed dict
-        data = await response.structured_output()
+            async with Agent(config) as agent:
+                response = await agent.chat(prompt)
 
-        if data:
-            return JudgeReport(**data)
-        else:
-            # Fallback: parse from text if structured output failed
-            raw_text = await response.text()
-            parsed = json.loads(raw_text)
-            return JudgeReport(**parsed)
+                # ADK structured output: response.structured_output() returns parsed dict
+                data = await response.structured_output()
+
+                if data:
+                    return JudgeReport(**data)
+                else:
+                    # Fallback: parse from text if structured output failed
+                    raw_text = await response.text()
+                    parsed = json.loads(raw_text)
+                    return JudgeReport(**parsed)
+
+        except Exception as e:
+            error_str = str(e)
+            if any(code in error_str for code in ["429", "503", "RESOURCE_EXHAUSTED", "high demand"]):
+                wait = 30 * attempt  # 30s → 60s → 90s
+                print(f"⏳ [Judge] API overloaded (attempt {attempt}/{max_retries}). "
+                      f"Retrying in {wait}s...")
+                if attempt == max_retries:
+                    print("❌ [Judge] Max retries reached.")
+                    raise
+                time.sleep(wait)
+            else:
+                raise
+
