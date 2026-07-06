@@ -1,6 +1,7 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/AgentGuard-DevSecOps%20AI%20Trust%20Layer-0f172a?style=for-the-badge&logo=shield&logoColor=white" alt="AgentGuard Banner">
+  <img src="docs/assets/agentguard_banner.jpeg" alt="AgentGuard — DevSecOps AI Trust Layer Banner" width="100%">
 </p>
+
 
 <div align="center">
 
