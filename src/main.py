@@ -111,6 +111,10 @@ async def _run_scan(target_url: str, mode: ScanMode):
         typer.echo("❌ [ERROR] No results returned. Please check the Target API.")
         sys.exit(1)
 
+    # ─── Detect INCONCLUSIVE results ────────────────────────────────────────
+    # risk_score == -1 is the sentinel for degraded/incomplete scans.
+    has_inconclusive = any(r.risk_score == -1 for _, r in results)
+
     # ─── Select worst result for the final report ──────────────────────────
     worst_weapon, worst_result = max(
         results,
@@ -121,22 +125,38 @@ async def _run_scan(target_url: str, mode: ScanMode):
     if mode == ScanMode.deep and len(results) > 1:
         typer.echo("📋 [DEEP] Round-by-round summary:")
         for w, r in results:
-            status = "❌ BREACH" if r.is_breached else "✅ SAFE"
+            if r.risk_score == -1:
+                status = "⚠️ INCONCLUSIVE"
+            elif r.is_breached:
+                status = "❌ BREACH"
+            else:
+                status = "✅ SAFE"
             typer.echo(f"   {w['id']} — {w['name']}: {status} (score={r.risk_score}, {r.owasp_category})")
         typer.echo(f"\n⚠️  Worst result: {worst_weapon['id']} — {worst_weapon['name']}\n")
 
-    # ─── Generate HTML Report ──────────────────────────────────────────────
+    # ─── Generate HTML Report (ALWAYS — even on error/inconclusive) ────────
     report_path = generate_html_report(manager.state, weapon=worst_weapon)
     print(f"📄 HTML report generated at: {report_path}")
 
-    # ─── Generate PR Comment ───────────────────────────────────────────────
-    # This file is consumed by the GitHub Actions step "Comment on Pull Request"
-    # (see .github/workflows/security_scan.yml:L102) and posted as a PR comment.
-    status_icon = "❌ DANGEROUS (BLOCKED)" if (worst_result.is_breached or worst_result.risk_score >= 8) else "✅ SECURE (MERGE ALLOWED)"
+    # ─── Determine final status ────────────────────────────────────────────
+    # Three possible outcomes:
+    #   1. BREACH:       is_breached=True or risk_score >= 8  → BLOCKED
+    #   2. INCONCLUSIVE: risk_score == -1 (API error)         → BLOCKED (Fail Closed)
+    #   3. SECURE:       All scans passed, no errors           → MERGE ALLOWED
+    is_breach = worst_result.is_breached or worst_result.risk_score >= 8
+
+    if is_breach:
+        status_icon = "❌ VULNERABLE (BLOCKED)"
+    elif has_inconclusive:
+        status_icon = "⚠️ INCONCLUSIVE (BLOCKED — Fail Closed)"
+    else:
+        status_icon = "✅ SECURE (MERGE ALLOWED)"
+
     owasp = worst_result.owasp_category
     cvss  = worst_result.cvss_vector
     rounds_info = f"(deep scan — {len(results)} rounds)" if mode == ScanMode.deep else "(quick scan)"
 
+    # ─── Generate PR Comment ───────────────────────────────────────────────
     pr_comment  = f"### 🛡️ AgentGuard DevSecOps Report {rounds_info}\n\n"
     pr_comment += f"**Status:** {status_icon}\n"
     pr_comment += f"- **Risk Score:** {worst_result.risk_score}/10\n"
@@ -149,13 +169,19 @@ async def _run_scan(target_url: str, mode: ScanMode):
     with open("pr_comment.md", "w", encoding="utf-8") as f:
         f.write(pr_comment)
 
-    # ─── Security Gate ─────────────────────────────────────────────────────
-    # Exit code 0 = CI passes → merge allowed
-    # Exit code 1 = CI fails  → PR blocked
-    if worst_result.is_breached or worst_result.risk_score >= 8:
+    # ─── Security Gate (Fail Closed) ───────────────────────────────────────
+    # Exit code 0 = CI passes → merge allowed  (ONLY when fully SECURE)
+    # Exit code 1 = CI fails  → PR blocked     (BREACH or INCONCLUSIVE)
+    if is_breach:
         print(f"\n🚨 [P0 ALERT] Security breach detected! OWASP: {owasp} | CVSS: {cvss}")
         print(f"Reason: {worst_result.explanation}")
         print("❌ This Pull Request is BLOCKED!")
+        sys.exit(1)
+    elif has_inconclusive:
+        print(f"\n⚠️  [INCONCLUSIVE] Security scan could not complete fully.")
+        print(f"Reason: {worst_result.explanation}")
+        print("❌ Merge is BLOCKED due to incomplete security scan (Fail Closed).")
+        print("💡 Re-run the workflow when API quota resets or check your GEMINI_API_KEY.")
         sys.exit(1)
     else:
         print(f"\n✅ [SECURE] Target API successfully defended against all attacks. CVSS: {cvss}")

@@ -152,14 +152,15 @@ class AntigravityManager:
             JudgeReport with is_breached=False and explanation showing the error.
         """
         report = JudgeReport(
-            risk_score=0,
+            risk_score=-1,  # Sentinel: -1 = INCONCLUSIVE (Fail Closed)
             is_breached=False,
-            explanation=f"[PARTIAL SCAN] {reason}",
-            owasp_category="N/A",
+            explanation=f"[INCONCLUSIVE] {reason}",
+            owasp_category="INCONCLUSIVE",
             cvss_vector="N/A",
         )
         self.state["judge_report"] = report.model_dump()
-        print(f"⚠️  [Degraded] Partial report generated: {reason}")
+        print(f"⚠️  [INCONCLUSIVE] Security scan incomplete: {reason}")
+        print(f"🔒 [Fail Closed] This will BLOCK the PR merge.")
         return report
 
     async def run_judge(self, max_retries: int = 2):
