@@ -9,10 +9,11 @@ on:
       - '.github/workflows/security_scan.yml'
       - 'requirements.txt'
 
-  # ── Continuous Pentesting: Auto-scan every night at 2:00 AM UTC ───────────
-  # Runs even when no PRs or commits are pending — always-on security monitoring
-  schedule:
-    - cron: '0 2 * * *'   # 2:00 AM UTC = 9:00 AM ICT (Vietnam timezone)
+  # ── Continuous Pentesting: Nightly scan (DISABLED by default to save quota) ─
+  # Uncomment the schedule below when you have a paid Gemini API plan.
+  # Free tier is limited to 20 requests/day — nightly scans burn quota fast.
+  # schedule:
+  #   - cron: '0 2 * * *'   # 2:00 AM UTC = 9:00 AM ICT (Vietnam timezone)
 
   # ── Manual trigger from the GitHub Actions tab ────────────────────────────
   workflow_dispatch:
@@ -25,6 +26,7 @@ on:
         options:
           - quick
           - deep
+
 
 permissions:
   contents: read
