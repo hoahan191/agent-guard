@@ -104,18 +104,37 @@ pip install -r requirements.txt
 ### 2. Configure API Key
 
 ```bash
-# Never hardcode your API key — use environment variables
+# Local development — set as environment variable or create .env file
 export GEMINI_API_KEY="your-gemini-api-key"
+
+# Or create a .env file (recommended — auto-loaded by load_dotenv())
+echo 'GEMINI_API_KEY=your-gemini-api-key' > .env
 ```
 
-### 3. Start the Target Mock API (Terminal 1)
+> 💡 **Get a free API key** at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+
+### 3. Configure GitHub Secrets (for CI/CD)
+
+> ⚠️ **Required if you want GitHub Actions to run** — the `.env` file is local-only and is NOT committed to git (it's in `.gitignore`). GitHub Actions reads the key from repository secrets.
+
+1. Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Set **Name** = `GEMINI_API_KEY`
+4. Set **Value** = your Gemini API key
+5. Click **Add secret**
+
+Direct link: `https://github.com/YOUR_USERNAME/agent-guard/settings/secrets/actions`
+
+> 🔑 The workflow file references it as `${{ secrets.GEMINI_API_KEY }}` — it's injected securely into the CI runner and never exposed in logs.
+
+### 4. Start the Target Mock API (Terminal 1)
 
 ```bash
 source venv/bin/activate
 PYTHONPATH=. uvicorn src.agents.target_mock:app --host 127.0.0.1 --port 8000
 ```
 
-### 4. Run the AgentGuard Scan (Terminal 2)
+### 5. Run the AgentGuard Scan (Terminal 2)
 
 ```bash
 source venv/bin/activate
