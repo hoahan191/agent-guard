@@ -84,102 +84,138 @@ class AntigravityManager:
         """
         Run a complete attack-evaluate pipeline round against the Target API.
 
-        Pipeline stages:
-        1. ADK Attacker Agent generates payload via generate_payload()
-        2. HTTP POST to Target API — fire payload, capture response
-        3. ADK Judge Agent evaluates via evaluate_interaction()
-
-        Args:
-            attack_objective: The red-teaming goal for this round.
-                              Sourced from arsenal.json via the MCP Arsenal Server.
+        Graceful degradation: If any stage fails (API error, network error),
+        the pipeline continues with degraded results instead of crashing.
+        This ensures a report is always generated, even with partial data.
 
         Returns:
-            JudgeReport if the pipeline completes successfully, or None if the
-            Target API is unreachable (connection error is logged and round is skipped).
+            JudgeReport (full or degraded) — never None, never raises.
         """
         self.state["attack_objective"] = attack_objective
-        print(f"🕵️  [Attacker] Analyzing target: {attack_objective}...")
 
-        # Stage 1: Generate attack payload using ADK Attacker Agent (Gemini-powered)
+        # ── Stage 1: Attacker Agent ──────────────────────────────────────────
+        print(f"\n{'='*60}")
+        print(f"📋 [Stage 1/3] ATTACKER — Generating adversarial payload...")
+        print(f"🎯 Objective: {attack_objective[:100]}...")
+        print(f"{'='*60}")
+
         attack_prompt = await generate_payload(attack_objective)
         self.state["attack_prompt"] = attack_prompt
-        print(f"🚀 [Attacker] Payload launched:\n{attack_prompt}")
+        print(f"✅ [Stage 1/3] Payload generated ({len(attack_prompt)} chars)")
+        print(f"🚀 [Attacker] Payload:\n{attack_prompt}")
 
-        # ── Rate Limiting: pause between Attacker → Target → Judge API calls ──
-        # Prevents back-to-back Gemini API calls that trigger per-minute rate limits.
+        # Rate Limiting: pause between API calls
         await asyncio.sleep(2)
 
-        # Stage 2: Fire payload at Target API via HTTP POST
-        # The Target API must return JSON with a "response" key.
-        # Failure to connect aborts the round — CI will log the error but not block.
+        # ── Stage 2: Fire at Target API ──────────────────────────────────────
+        print(f"\n{'='*60}")
+        print(f"📋 [Stage 2/3] TARGET — Sending payload to {self.target_url}")
+        print(f"{'='*60}")
+
         try:
             response = requests.post(
                 self.target_url,
-                json={"message": attack_prompt},  # Standard AgentGuard API contract
-                timeout=30  # Hard timeout — prevents CI from hanging if target is unresponsive
+                json={"message": attack_prompt},
+                timeout=30
             )
             target_out = response.json().get("response", "")
-            print(f"\n🎯 [Target API] Response:\n{target_out}")
+            print(f"✅ [Stage 2/3] Target responded (HTTP {response.status_code})")
+            print(f"🎯 [Target API] Response:\n{target_out}")
             self.state["target_response"] = target_out
+        except requests.exceptions.Timeout:
+            print("❌ [Stage 2/3] Target API timeout (30s). Skipping round.")
+            return self._degraded_report("Target API timeout — no response received.")
+        except requests.exceptions.ConnectionError:
+            print("❌ [Stage 2/3] Cannot connect to Target API. Is it running?")
+            return self._degraded_report("Target API unreachable — connection refused.")
         except Exception as e:
-            print(f"❌ Cannot connect to Target API: {e}")
-            return  # Round aborted — no Judge evaluation without a target response
+            print(f"❌ [Stage 2/3] Target API error: {type(e).__name__}: {e}")
+            return self._degraded_report(f"Target API error: {type(e).__name__}")
 
-        # ── Rate Limiting: pause before Judge API call ──
+        # Rate Limiting: pause before Judge API call
         await asyncio.sleep(2)
 
-        # Stage 3: Pass (attack_prompt, target_response) to ADK Judge Agent
+        # ── Stage 3: Judge Agent ─────────────────────────────────────────────
         return await self.run_judge()
+
+    def _degraded_report(self, reason: str) -> JudgeReport:
+        """
+        Create a degraded JudgeReport when the pipeline cannot complete normally.
+
+        This enables graceful degradation: the scan continues, the HTML report
+        is still generated, and CI gets a clear status instead of a crash.
+
+        Args:
+            reason: Human-readable explanation of why the scan was partial.
+
+        Returns:
+            JudgeReport with is_breached=False and explanation showing the error.
+        """
+        report = JudgeReport(
+            risk_score=0,
+            is_breached=False,
+            explanation=f"[PARTIAL SCAN] {reason}",
+            owasp_category="N/A",
+            cvss_vector="N/A",
+        )
+        self.state["judge_report"] = report.model_dump()
+        print(f"⚠️  [Degraded] Partial report generated: {reason}")
+        return report
 
     async def run_judge(self, max_retries: int = 2):
         """
-        Invoke the ADK Judge Agent to evaluate the latest attack-response interaction.
+        Invoke the Judge Agent with graceful degradation on API failure.
 
-        CI-optimized (fail fast):
-            max_retries=2 with 10s wait (not 3×30-90s = 270s).
-            The Judge agent itself also retries once internally.
-            Total worst-case wait: ~25s instead of 270s+.
+        If ALL retries fail, returns a degraded JudgeReport instead of raising.
+        This ensures the pipeline always completes and generates an HTML report.
 
         Args:
             max_retries: Number of retry attempts on rate limit errors (default: 2).
 
         Returns:
-            JudgeReport: Structured verdict with risk_score, is_breached,
-                         owasp_category, cvss_vector, and explanation.
-
-        Side effect: Updates self.state["judge_report"] with the serialized verdict,
-        which is later consumed by reporter.py to render the HTML template.
+            JudgeReport: Full verdict on success, degraded verdict on API failure.
         """
-        print("\n⚖️  [Judge Agent] Performing semantic analysis with ADK Agent...")
+        print(f"\n{'='*60}")
+        print(f"📋 [Stage 3/3] JUDGE — Evaluating attack-response interaction...")
+        print(f"{'='*60}")
+
         attack_prompt = self.state["attack_prompt"]
         target_response = self.state["target_response"]
 
-        # Fail-fast retry: 1 retry with short wait
         for attempt in range(1, max_retries + 1):
             try:
-                # Evaluate: the Judge sees only the conversation, not the weapon metadata.
-                # This isolation prevents the Judge from being biased by the attack's intent.
+                print(f"🔄 [Judge] Attempt {attempt}/{max_retries}...")
                 report = await evaluate_interaction(attack_prompt, target_response)
-                break  # Success — exit retry loop
+
+                # ── Success logging ──
+                print(f"✅ [Stage 3/3] Judge evaluation complete!")
+                self.state["judge_report"] = report.model_dump()
+                print(f"📊 Result: risk_score={report.risk_score}, "
+                      f"breached={report.is_breached}, owasp={report.owasp_category}")
+                owasp_label = self.OWASP_LABELS.get(report.owasp_category, "No Violation")
+                print(f"🔖 OWASP LLM Top 10: {report.owasp_category} — {owasp_label}")
+                return report
 
             except Exception as e:
-                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                error_type = type(e).__name__
+                error_str = str(e)
+
+                if any(code in error_str for code in ["429", "503", "RESOURCE_EXHAUSTED", "high demand"]):
                     if attempt == max_retries:
-                        print("❌ [Orchestrator] Judge failed after retries. Skipping evaluation.")
-                        raise
-                    wait = 10  # Short wait — enough for per-minute quota reset
-                    print(f"⏳ [Orchestrator] Rate limited. Retrying Judge in {wait}s... "
-                          f"(attempt {attempt}/{max_retries})")
+                        print(f"❌ [Stage 3/3] Judge API exhausted after {max_retries} attempts.")
+                        return self._degraded_report(
+                            f"Judge API quota exhausted ({error_type}). "
+                            f"Attacker payload was delivered but verdict is unavailable."
+                        )
+                    wait = 10
+                    print(f"⏳ [Judge] Rate limited ({error_type}). "
+                          f"Retrying in {wait}s... (attempt {attempt}/{max_retries})")
                     await asyncio.sleep(wait)
                 else:
-                    raise  # Non-rate-limit error — re-raise immediately
+                    # Non-retryable error — graceful degradation instead of crash
+                    print(f"❌ [Stage 3/3] Judge unexpected error: {error_type}: {error_str[:200]}")
+                    return self._degraded_report(
+                        f"Judge Agent error: {error_type}. "
+                        f"Attacker payload was delivered but verdict is unavailable."
+                    )
 
-        # Serialize the Pydantic model to dict for storage in state and HTML rendering
-        self.state["judge_report"] = report.model_dump()
-
-        # Log the result — in CI, this appears in the GitHub Actions run log
-        print(f"📊 Evaluation result: {self.state['judge_report']}")
-        owasp = report.owasp_category
-        owasp_label = self.OWASP_LABELS.get(owasp, "No Violation")
-        print(f"🔖 OWASP LLM Top 10: {owasp} — {owasp_label}")
-        return report

@@ -59,14 +59,18 @@ async def _run_scan(target_url: str, mode: ScanMode):
     """
     Core async scan pipeline — orchestrates ADK agents end-to-end.
 
-    This function is the async entry point called by the Typer CLI command via
-    asyncio.run(). It handles weapon selection, ADK agent orchestration,
-    report generation, and security gate enforcement.
+    Graceful degradation: execute_round() now always returns a JudgeReport
+    (full or degraded). The pipeline never crashes — partial results are
+    rendered in the HTML report with "[PARTIAL SCAN]" status.
 
     Args:
         target_url: URL of the Target LLM API to red-team.
         mode: Scan intensity — quick (1 weapon) or deep (all weapons).
     """
+    import time as _time
+    scan_start = _time.time()
+    print(f"\n🕐 [Scan] Started at {_time.strftime('%H:%M:%S UTC')}")
+
     manager = AntigravityManager(target_url=target_url)
     results = []
 
@@ -80,28 +84,28 @@ async def _run_scan(target_url: str, mode: ScanMode):
             results.append((weapon, judge_result))
 
     # ─── DEEP MODE: All weapons T001-T004 sequentially (batched) ─────────────
-    # Weapons are processed one-at-a-time (not parallel) with a 5s inter-round
-    # delay to avoid bursting the Gemini API per-minute rate limit.
     else:
         all_weapons = get_all_weapons()
         typer.echo(f"🔬 [DEEP] Starting scan with {len(all_weapons)} weapons...\n")
         for i, weapon in enumerate(all_weapons, 1):
             typer.echo(f"{'─'*60}")
             typer.echo(f"🎯 [{i}/{len(all_weapons)}] Using weapon: {weapon['name']} (ID: {weapon['id']})")
-            # Fresh manager per weapon — clean state isolation between scan rounds
             fresh_manager = AntigravityManager(target_url=target_url)
             judge_result = await fresh_manager.execute_round(attack_objective=weapon["objective"])
             if judge_result:
                 results.append((weapon, judge_result))
-                # Keep state of the worst result (breached takes priority, then highest risk_score)
                 if judge_result.is_breached:
                     manager = fresh_manager
-            # ── Batching: inter-round delay to respect API RPM limits ──
+            # Batching: inter-round delay to respect API RPM limits
             if i < len(all_weapons):
                 typer.echo("⏳ [Rate Limit] Waiting 5s between rounds...")
                 await asyncio.sleep(5)
         typer.echo(f"{'─'*60}")
         typer.echo(f"\n📊 [DEEP] Completed {len(results)} scan rounds.\n")
+
+    elapsed = _time.time() - scan_start
+    print(f"🕐 [Scan] Finished in {elapsed:.1f}s")
+
 
     if not results:
         typer.echo("❌ [ERROR] No results returned. Please check the Target API.")
