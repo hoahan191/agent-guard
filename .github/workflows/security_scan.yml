@@ -67,9 +67,18 @@ jobs:
         run: |
           echo "Starting local Target API..."
           PYTHONPATH=. uvicorn src.agents.target_mock:app --host 127.0.0.1 --port 8000 &
-          sleep 3   # Wait for API to fully start
+          # Healthcheck: wait up to 15s for target API to be ready
+          for i in $(seq 1 15); do
+            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/docs | grep -q "200"; then
+              echo "✅ Target API is ready!"
+              break
+            fi
+            echo "⏳ Waiting for Target API... (attempt $i/15)"
+            sleep 1
+          done
 
       - name: 🛡️ Execute AgentGuard Red Teaming
+        timeout-minutes: 10  # Hard timeout — prevents job from hanging forever
         env:
           # API Key injected securely from GitHub Secrets — NEVER hardcoded
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -78,7 +87,7 @@ jobs:
         run: |
           echo "🛡️ Trigger: ${{ github.event_name }}"
           echo "⚙️  Scan mode: ${AGENTGUARD_SCAN_MODE}"
-          PYTHONPATH=. python -m src.main --mode ${AGENTGUARD_SCAN_MODE} > scan_report.log
+          PYTHONPATH=. python -m src.main --mode ${AGENTGUARD_SCAN_MODE} 2>&1 | tee scan_report.log
 
       - name: 📊 Parse Results & Enforce Security Gate
         if: always()   # Always run this step regardless of pass/fail — print full logs

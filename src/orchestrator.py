@@ -19,6 +19,7 @@ The shared `state` dict acts as a message bus between pipeline stages, accumulat
 data that is later serialized into the HTML security report via reporter.py.
 """
 
+import asyncio
 import time
 import requests
 from src.agents.attacker import generate_payload
@@ -110,7 +111,8 @@ class AntigravityManager:
         try:
             response = requests.post(
                 self.target_url,
-                json={"message": attack_prompt}  # Standard AgentGuard API contract
+                json={"message": attack_prompt},  # Standard AgentGuard API contract
+                timeout=30  # Hard timeout — prevents CI from hanging if target is unresponsive
             )
             target_out = response.json().get("response", "")
             print(f"\n🎯 [Target API] Response:\n{target_out}")
@@ -160,7 +162,7 @@ class AntigravityManager:
                     if attempt == max_retries:
                         print("❌ [Rate Limit] Max retries reached. Skipping Judge evaluation.")
                         raise
-                    time.sleep(wait)
+                    await asyncio.sleep(wait)
                 else:
                     raise  # Non-rate-limit error — re-raise immediately
 
