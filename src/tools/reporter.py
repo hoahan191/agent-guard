@@ -27,8 +27,8 @@ def generate_html_report(state: dict, weapon: dict = None, output_path: str = "s
         judge_report=state.get("judge_report", {}),
         weapon=weapon_info,
         scan_time=scan_time,
-        model_attacker="gemini-2.0-flash-lite",
-        model_judge="gemini-2.0-flash-lite",
+        model_attacker="gemini-2.5-flash-preview-05-20",
+        model_judge="gemini-2.5-flash-preview-05-20",
     )
     
     # Write to file
