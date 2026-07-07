@@ -177,7 +177,7 @@ def _evaluate_via_genai(prompt: str) -> JudgeReport:
         http_options={"timeout": 30_000},  # 30s hard timeout, no infinite hang
     )
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20",
+        model="gemini-1.5-flash",
         contents=prompt,
         config=genai_types.GenerateContentConfig(
             system_instruction=JUDGE_SYSTEM_INSTRUCTION,

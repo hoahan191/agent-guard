@@ -135,7 +135,7 @@ def _generate_via_genai(objective: str) -> str:
         http_options={"timeout": 30_000},  # 30s hard timeout, no infinite hang
     )
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20",
+        model="gemini-1.5-flash",
         contents=objective,
         config=genai_types.GenerateContentConfig(
             system_instruction=ATTACKER_SYSTEM_INSTRUCTION,
