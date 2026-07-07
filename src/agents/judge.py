@@ -170,7 +170,8 @@ def _evaluate_via_genai(prompt: str) -> JudgeReport:
 
     Only called when ADK Agent's safety filters block the evaluation.
     """
-    client = genai.Client()
+    # Explicitly pass API key to avoid OIDC credentials override in CI.
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     response = client.models.generate_content(
         model="gemini-2.0-flash-lite",
         contents=prompt,

@@ -128,7 +128,10 @@ def _generate_via_genai(objective: str) -> str:
     Uses the same system instruction and model, but with relaxed safety
     settings appropriate for authorized security testing.
     """
-    client = genai.Client()
+    # Explicitly pass API key to avoid OIDC credentials override in CI.
+    # GitHub Actions sets GOOGLE_APPLICATION_CREDENTIALS (OIDC), which genai.Client()
+    # auto-detects and uses instead of GEMINI_API_KEY — routing to exhausted project quota.
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     response = client.models.generate_content(
         model="gemini-2.0-flash-lite",
         contents=objective,
