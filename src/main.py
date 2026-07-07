@@ -79,7 +79,9 @@ async def _run_scan(target_url: str, mode: ScanMode):
         if judge_result:
             results.append((weapon, judge_result))
 
-    # ─── DEEP MODE: All weapons T001-T004 sequentially ────────────────────
+    # ─── DEEP MODE: All weapons T001-T004 sequentially (batched) ─────────────
+    # Weapons are processed one-at-a-time (not parallel) with a 5s inter-round
+    # delay to avoid bursting the Gemini API per-minute rate limit.
     else:
         all_weapons = get_all_weapons()
         typer.echo(f"🔬 [DEEP] Starting scan with {len(all_weapons)} weapons...\n")
@@ -94,6 +96,10 @@ async def _run_scan(target_url: str, mode: ScanMode):
                 # Keep state of the worst result (breached takes priority, then highest risk_score)
                 if judge_result.is_breached:
                     manager = fresh_manager
+            # ── Batching: inter-round delay to respect API RPM limits ──
+            if i < len(all_weapons):
+                typer.echo("⏳ [Rate Limit] Waiting 5s between rounds...")
+                await asyncio.sleep(5)
         typer.echo(f"{'─'*60}")
         typer.echo(f"\n📊 [DEEP] Completed {len(results)} scan rounds.\n")
 

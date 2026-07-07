@@ -105,6 +105,10 @@ class AntigravityManager:
         self.state["attack_prompt"] = attack_prompt
         print(f"🚀 [Attacker] Payload launched:\n{attack_prompt}")
 
+        # ── Rate Limiting: pause between Attacker → Target → Judge API calls ──
+        # Prevents back-to-back Gemini API calls that trigger per-minute rate limits.
+        await asyncio.sleep(2)
+
         # Stage 2: Fire payload at Target API via HTTP POST
         # The Target API must return JSON with a "response" key.
         # Failure to connect aborts the round — CI will log the error but not block.
@@ -121,19 +125,23 @@ class AntigravityManager:
             print(f"❌ Cannot connect to Target API: {e}")
             return  # Round aborted — no Judge evaluation without a target response
 
+        # ── Rate Limiting: pause before Judge API call ──
+        await asyncio.sleep(2)
+
         # Stage 3: Pass (attack_prompt, target_response) to ADK Judge Agent
         return await self.run_judge()
 
-    async def run_judge(self, max_retries: int = 3):
+    async def run_judge(self, max_retries: int = 2):
         """
         Invoke the ADK Judge Agent to evaluate the latest attack-response interaction.
 
-        Includes exponential backoff retry logic to gracefully handle 429
-        RESOURCE_EXHAUSTED errors from the Gemini API free tier.
-        Free tier limits: 1,500 req/day for gemini-2.0-flash.
+        CI-optimized (fail fast):
+            max_retries=2 with 10s wait (not 3×30-90s = 270s).
+            The Judge agent itself also retries once internally.
+            Total worst-case wait: ~25s instead of 270s+.
 
         Args:
-            max_retries: Number of retry attempts on rate limit errors (default: 3).
+            max_retries: Number of retry attempts on rate limit errors (default: 2).
 
         Returns:
             JudgeReport: Structured verdict with risk_score, is_breached,
@@ -146,7 +154,7 @@ class AntigravityManager:
         attack_prompt = self.state["attack_prompt"]
         target_response = self.state["target_response"]
 
-        # Retry loop with exponential backoff for 429 rate limit handling
+        # Fail-fast retry: 1 retry with short wait
         for attempt in range(1, max_retries + 1):
             try:
                 # Evaluate: the Judge sees only the conversation, not the weapon metadata.
@@ -156,12 +164,12 @@ class AntigravityManager:
 
             except Exception as e:
                 if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                    wait = 30 * attempt  # 30s → 60s → 90s exponential backoff
-                    print(f"⏳ [Rate Limit] Gemini API quota hit (attempt {attempt}/{max_retries}). "
-                          f"Retrying in {wait}s...")
                     if attempt == max_retries:
-                        print("❌ [Rate Limit] Max retries reached. Skipping Judge evaluation.")
+                        print("❌ [Orchestrator] Judge failed after retries. Skipping evaluation.")
                         raise
+                    wait = 10  # Short wait — enough for per-minute quota reset
+                    print(f"⏳ [Orchestrator] Rate limited. Retrying Judge in {wait}s... "
+                          f"(attempt {attempt}/{max_retries})")
                     await asyncio.sleep(wait)
                 else:
                     raise  # Non-rate-limit error — re-raise immediately
