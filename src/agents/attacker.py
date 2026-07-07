@@ -130,7 +130,7 @@ def _generate_via_genai(objective: str) -> str:
     """
     client = genai.Client()
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.0-flash-lite",
         contents=objective,
         config=genai_types.GenerateContentConfig(
             system_instruction=ATTACKER_SYSTEM_INSTRUCTION,
