@@ -427,7 +427,7 @@ agent-guard/
 - [x] **ADK Structured Output** — Judge Agent uses `LocalAgentConfig(response_schema=JudgeReport)` + `response.structured_output()`
 - [x] **Async Pipeline** — Full async orchestrator supporting ADK Agent lifecycle (`async with Agent(config)`)
 - [x] **Intentionally Vulnerable Target** — `target_mock_vulnerable.py` for breach detection demos (OWASP LLM01/02/07)
-- [x] **English-only Comments** — All Vietnamese comments translated for international judges
+
 
 ### 🔮 v0.4 — Mid-Term
 - [ ] **Graph of Agents** — Parallel specialized attackers: `SocialEngineerAgent`, `ObfuscationAgent`, `RoleplayAgent` coordinated by a `MetaJudgeAgent`
